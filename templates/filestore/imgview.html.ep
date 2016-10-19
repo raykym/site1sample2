@@ -1,0 +1,26 @@
+% layout 'mobidef';
+% title 'imgview';
+<script     >
+%# scriptがあればココに
+</script>
+
+<div data-role="page" style="background: #80aa55">
+    <div><h3>ThisSite</h3></div>
+    <div style="color: #ff0000"><%= $msg %></div>
+        <div style="border: 1px solid">
+        <div><img src="/imgload?oid=<%= $oid %>" width="320" hight="240"></div>
+        <div>
+            ファイル名：<%= $filename %> | 登録日付：<%= $datetime %>
+            <form method="post" action="/menu/fileviewact" enctype="multipart/form-data" data-ajax="false">
+            <input type="text" name="comment" value="<%= $comment %>">
+            <input type="submit" value="コメント書き換え">
+            <input type="hidden" name="oid" value="<%= $oid %>">
+            </form>
+        </div>
+        </div>
+    <div data-role="footer" style="backgroud: #aac78d;">
+    <a href="" data-rel="back" class="btn-inline">back</a>
+    <a href="/menu" class="btn-inline">メニュー</a>
+    <a href="/menu/listview" class="btn-inline">List view</a>
+    </div>
+</div>

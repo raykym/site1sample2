@@ -1,0 +1,38 @@
+% layout 'mobidef';
+% title 'seticon view';
+%#<script     >
+%# scriptがあればココに
+%#</script>
+
+# listviewからコピーなのでいろいろパスが間違っている。。。。。
+
+<div data-role="page" style="background: #80aa55">
+    <div><h3>seticon view</h3></div>
+    <div style="color: #ff0000"><%= $msg %></div>
+        <div>
+            <a href="/menu/settings/seticon?page=<%= $page-1 %>&f=1" class="ui-btn ui-btn-inline">前へ</a>
+            <a href="/menu/settings/seticon?page=<%= $page+1 %>&f=1" class="ui-btn ui-btn-inline">次へ</a>
+        </div>
+        <div style="border: 1px solid">
+            <ul data-role="listview" data-inset="true">
+ %            foreach my $i (@$filelist){
+    %# $i=[oid,filename,mime] 
+          <li>
+            <form name="<%= $i->[0] %>" method="post" action="/menu/settings/seticonact">
+            <input type="hidden" name="oid" value="<%= $i->[0] %>">
+            <button  type="submit" value="view">
+   %# listview にf=1 で画像に絞っているので判別はしない
+            <img src="/imgload?oid=<%= $i->[0] %> " width="100" height="100">
+            </form>
+               <h2><%= $i->[1] %><h2>
+            </button>
+          </li>
+ %          }
+            </ul>
+        </div>
+    <div data-role="footer" style="backgroud: #aac78d;">
+    <a href="" data-rel="back" class="btn-inline">back</a>
+    <a href="/menu" class="btn-inline">メニュー</a>
+    </div>
+</div>
+

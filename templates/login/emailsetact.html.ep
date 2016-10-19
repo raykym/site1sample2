@@ -1,0 +1,26 @@
+% layout 'mobidef2';
+% title 'usersettings';
+<div data-role="page" style="background: #80aa55;">
+      <div><h1>ThisSite</h1><div>
+      <div style="color: #FF0000;"><%= $msg %></div>
+      <div role="main" class="ui-content">
+         <div><h3>変更したい項目をタッチしてください</h3></div>
+          <table border width="50%" style="color: #778899; background: #FFFFFF;">
+          <tr>
+            <td>e-mail</td>
+            <td><a href="/menu/settings/email" class="anchor" data-rel="dialog" data-transition="flip"><%= $email %></a></td>
+          </tr>
+          <tr>
+            <td>username</td>
+            <td><%= $username %></td>
+          </tr>
+          <tr>
+             <td>password</td>
+             <td>********</td>
+          </tr>
+          </table>
+      </div>
+   <div data-role="footer" style="background: #aac78d;">
+    <a href="" data-rel="back">back</a>
+   </div>
+</div>

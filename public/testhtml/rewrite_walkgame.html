@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<HTML>
+<HEAD>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+  <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+  <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+  <script type="text/javascript" src="https://maps.google.com/maps/api/js?sensor=true_or_false"></script>
+  <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+
+<script type="text/javascript">
+
+
+ res_disp = "射程内";
+ isMotion = false;  // false is move. true is END game.
+ onCount = 0;     // shake count
+ direct = false;  // direct renge check
+ acc_shl = 20;    // renge wide
+ alpha_shl = 380;  // init over number
+ gpslocal_pos = null;  //user gps object
+ ene_pos = null;    // enemy gps object
+ geo_dist = null;
+ eneMoveID = null;
+ MakerToggle = false;
+
+ gamestat = { "sinario" : 0,   
+              "user" : { "damage" : 0 },
+              "enemy" : { "damage" : 0 },
+            };
+
+ gpssetID = null;
+ gpsInterval = 60000; // 1分で１回GPSをチェックする。
+
+ SinarioInterval = 1000;  // シナリオループの間隔
+
+ map = null ;
+ mapoptions = null;
+ mapobj = null;
+ makerobj = new google.maps.Marker();
+ makerobj2 = new google.maps.Marker();
+
+ EnmInterval = 5000;  // Enemy移動間隔
+ point_spn = 0.00015;
+ dist_shl = 20;      // 距離判定の幅 20m
+
+ isInterval = false;   // JAIROの稼働タイミング
+
+function Mtoggle(){
+
+    if (MakerToggle) {
+        MakerToggle = false;
+    } else { 
+        MakerToggle = true;
+    }
+}
+
+
+function dumCall(){
+       //dummy Callback...
+       }
+
+function hitEmure(){
+    // Hit Emurate setting
+       onCount = 3;
+       }
+
+
+  // map描写
+        var lat = 0;
+        var lng = 0;
+google.maps.event.addDomListener(window, 'load', function() {
+                    map = document.getElementById("gmap");
+                var options = {
+                        zoom: 16,
+                        center: new google.maps.LatLng(lat, lng),
+                        mapTypeId: google.maps.MapTypeId.ROADMAP,
+                        scaleControl: true
+                };
+                mapobj = new google.maps.Map(map, options);
+              });
+
+  // エネミー初期化
+function enmset(){
+        EnemySet();
+        getDirection();
+        eneMoveID = window.setInterval(EnmMove,EnmInterval);
+        gpssetID = window.setInterval(keyInput,gpsInterval);
+        $("#enemy_dum").text("Enemy Damage: " + gamestat.enemy.damage + " point"); 
+    };
+
+  // リセット
+function hangUp(){
+         window.location.reload();
+    }
+
+
+// Sencer check  Not Active this section.......
+if ( ! window.DeviceMotionEvent ) {
+       dispSupport = "Not Support!";
+       console.log("DEBUG: DeviceMotionEvent NOT Support");
+    } else {
+       dispSupport = "";
+       console.log("DEBUG: DeviceMotionEvent Support");
+    }
+
+
+// 加速度センサー
+function AccelSence(){
+if (geo_dist < 20) {
+        window.addEventListener("devicemotion", devicemotionHandler);
+         res_disp = "射程内";
+         $('#output').text(res_disp);
+    } else {
+        window.removeEventListener("devicemotion", devicemotionHandler);
+         res_disp = "射程外";
+         $('#output').text(res_disp);
+    }
+}
+
+function devicemotionHandler(event) {
+
+   // 距離が20m以下になるまで動作しない Enemyがセットされるまでは動作する。
+   if (geo_dist > 20) { 
+                       res_disp = "射程外";
+                       $('#output').text(res_disp);
+                        return;
+                      }
+
+    res_disp = "射程内";
+
+    var a = {
+        x : event.acceleration.x,
+        y : event.acceleration.y,
+        z : event.acceleration.z,
+    };
+
+    if ((a.x > acc_shl)||(a.y > acc_shl)||(a.z > acc_shl)||(a.x < -acc_shl)||(a.y < -acc_shl)||(a.z < -acc_shl)) { 
+                   onCount++;
+                 };
+
+          // shake 2hit & direct(20wide) & distance 20m 終了判定
+          if ( (onCount > 2)&&(direct)&& (geo_dist < dist_shl)) {
+                   res_disp = "終了";
+                   isMotion = true;  // JAIRO STOP
+                   gamestat.sinario = 100;  // シナリオ終了
+                 };
+
+          if ( (onCount > 3)&&(! direct)){
+                   onCount = 0;
+                 };
+
+    $('#output').text(res_disp);
+}
+
+// JAIRO Sencer check Not Active this section...............
+if ( ! window.DeviceOrientationEvent ) {
+       dispSupport_j = "Not Support!";
+       console.log("DEBUG: DeviceOrientationEvent NOT Support");
+    } else {
+       dispSupport_j = "";
+       console.log("DEBUG: DeviceOrientationEvent Support");
+    }
+
+// JAIRO  定期ポーリングと20m以下の場合に駆動する。 
+function JairoSence(){
+if ((geo_dist < 20)||(isInterval)){
+        window.addEventListener("deviceorientation", deviceorientationHandler);
+    } else {
+        window.removeEventListener("deviceorientation", deviceorientationHandler);
+        // console.log("DEBUG: JAIRO STOPED!");
+    }
+}
+
+function deviceorientationHandler(event) {
+
+      console.log("DEBUG: JAIRO START!!");
+
+   if (isMotion) return;
+
+  // X軸
+    $('#event_x').text(event.beta);
+  // Y軸
+    $('#event_y').text(event.gamma);
+  // Z軸
+     // trunsrate RightRound
+     N0r = 360 - event.alpha;
+    $('#event_z').text(N0r);
+
+    if ((N0r > alpha_shl-20) && ( N0r < alpha_shl+20 )) {
+            direct = true;
+        } else {
+            direct = false;
+        };
+
+   // 方向指示表示
+   $("#arrow").css({
+        "transform" : "rotate(" + (alpha_shl - N0r) + "deg)",
+        })
+
+    $('#output_j').text("alpha:(-360) " + Math.ceil(N0r) + dispSupport_j);
+}
+
+ // GPS get  aCallback is dummy callback for Promise
+function gpsset(aCallback){
+    getPosition(aCallback);
+
+    $("#user_dum").text("User Damage: " + gamestat.user.damage + " point");
+    };
+
+
+function getPosition(aCallback){
+    console.log("getPosition START!!!");
+
+    var geoOptions = {
+        enableHighAccuracy: true,   //高精度要求
+        timeout: 6000,          //タイムアウト(ミリ秒)
+        maximumAge: 0       //キャッシュ有効期限(ミリ秒)
+    }
+
+
+    var watchID =  navigator.geolocation.watchPosition(successCallback, errorCallback,geoOptions);
+
+    function successCallback(position) {
+
+          // MAP表示センター指定
+          lat = position.coords.latitude;
+          lng = position.coords.longitude;
+
+          gpslocal_pos = {"gpslocation": {"latitude": position.coords.latitude,
+                                          "longitude": position.coords.longitude,
+                                          "altitude": position.coords.altitude,
+                                          "accuracy": position.coords.accuracy,
+                                          "altitudeAccuracy": position.coords.altitudeAccuracy,
+                                          "heading": position.coords.heading,
+                                          "speed": position.coords.speed
+                                        }};
+
+          console.log("GPS:" + JSON.stringify(gpslocal_pos) );
+
+     // 再描写用 GPSの座標をセンターに再描写
+         var opt2 = { center: new google.maps.LatLng(lat, lng)};
+         mapobj.setOptions(opt2);
+
+     // 追跡の停止
+         navigator.geolocation.clearWatch(watchID);
+
+     // Marker Set
+         console.log("Marker SET");
+
+                  makerobj.setMap(null);
+
+                  makerobj = new google.maps.Marker({
+                               position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+                               map: mapobj,
+                               title: "mySelf"
+                          });
+                   console.log("Marker:" + position.coords.latitude + "|" + position.coords.longitude);
+          aCallback(); // for promise
+    }  // successCallback
+
+    function errorCallback(error) {
+      var err_msg = "";
+      switch(error.code)
+        {
+        case 1:
+          err_msg = "位置情報の利用が許可されていません";
+          break;
+        case 2:
+          err_msg = "デバイスの位置が判定できません";
+          break;
+        case 3:
+          err_msg = "タイムアウトしました";
+          break;
+      }
+      alert(err_msg);
+      return;
+     }
+
+}  //getPosition
+
+
+function EnemySet(){
+
+    if (! gpslocal_pos) { console.log("DEBUG: EnemySet RETURN!"); return;};
+
+    // Enemy Setting
+       // ジャイロの方向に従ってポイントを設定
+       case_dir = 1; // default seting
+       if ( N0r < 90 ) { case_dir = 1 };
+       if (( 90 < N0r )&&( N0r < 180 )) { case_dir = 2 };
+       if (( 180 < N0r )&&( N0r < 270 )) { case_dir = 3 };
+       if (( 270 < N0r )&&( N0r < 360 )) { case_dir = 4 };
+
+       switch (case_dir) {
+            case 1:
+                var ene_lat = gpslocal_pos.gpslocation.latitude + (Math.random() * 0.002);
+                var ene_lng = gpslocal_pos.gpslocation.longitude + (Math.random() * 0.002);
+                break ;
+            case 2:
+                var ene_lat = gpslocal_pos.gpslocation.latitude - (Math.random() * 0.002);
+                var ene_lng = gpslocal_pos.gpslocation.longitude + (Math.random() * 0.002);
+                break ;
+            case 3:
+                var ene_lat = gpslocal_pos.gpslocation.latitude - (Math.random() * 0.002);
+                var ene_lng = gpslocal_pos.gpslocation.longitude - (Math.random() * 0.002);
+                break ;
+            case 4:
+                var ene_lat = gpslocal_pos.gpslocation.latitude + (Math.random() * 0.002);
+                var ene_lng = gpslocal_pos.gpslocation.longitude - (Math.random() * 0.002);
+                break ;
+            };
+
+            console.log("DEBUG:" + ene_lat + " " + ene_lng);
+
+            ene_pos = { "latitude" : ene_lat,
+                        "longitude" : ene_lng,
+                        "status" : "attack",
+                        "reng" : 500,
+                        "rundirect" : 300 };
+
+            console.log("DEBUG: ene_pos:" + ene_pos.latitude + ":" + ene_pos.longitude);
+
+           // Enemy position Maker SET
+                //var icon = "/img/target_icon.png";
+
+                mapIconSet();
+
+                makerobj2 = new google.maps.Marker({
+                               position: new google.maps.LatLng(ene_pos.latitude, ene_pos.longitude),
+                               map: mapobj,
+                               title: "ene_pos",
+                               icon: icon
+                          });
+              console.log ("DEBUG: Mark makerobj2");
+
+             // inVisible Maker
+             makerobj2.setVisible(MakerToggle); 
+
+};  // EnemySet
+
+
+// Calc Direct
+function geoDirection(lat1, lng1, lat2, lng2) {
+  // 緯度経度 lat1, lng1 の点を出発として、緯度経度 lat2, lng2 への方位
+  // 北を０度で右回りの角度０～３６０度
+  var Y = Math.cos(lng2 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180 - lat1 * Math.PI / 180);
+  var X = Math.cos(lng1 * Math.PI / 180) * Math.sin(lng2 * Math.PI / 180) - Math.sin(lng1 * Math.PI / 180) * Math.cos(lng2 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180 - lat1 * Math.PI / 180);
+  var dirE0 = 180 * Math.atan2(Y, X) / Math.PI; // 東向きが０度の方向
+  if (dirE0 < 0) {
+    dirE0 = dirE0 + 360; //0～360 にする。
+  }
+  var dirN0 = (dirE0 + 90) % 360; //(dirE0+90)÷360の余りを出力 北向きが０度の方向
+  return dirN0;
+}
+
+// Direction & Distance
+function getDirection(){
+        if ((! gpslocal_pos)||(! ene_pos)) return;
+
+        // Direct position
+        alpha_shl = geoDirection(gpslocal_pos.gpslocation.latitude, gpslocal_pos.gpslocation.longitude, ene_pos.latitude, ene_pos.longitude);
+        console.log("DEBUG: alpha_shl:" + alpha_shl);
+
+        // Distance Check!  ６ケタの精度
+        geo_dist = geoDistance(gpslocal_pos.gpslocation.latitude, gpslocal_pos.gpslocation.longitude, ene_pos.latitude, ene_pos.longitude, 6);
+
+        // 距離によってバイブレータの起動 Ghostがattackの場合のみ
+        if (ene_pos.status == "attack"){
+            if (( geo_dist > 298)&&(geo_dist < 302 )){ navigator.vibrate([300, 100, 300, 100, 300]); }
+            if (( geo_dist > 198)&&(geo_dist < 202 )){ navigator.vibrate([300, 100, 300]); }
+            if (( geo_dist > 98)&&(geo_dist < 102 )){ navigator.vibrate(500); }
+            if (( geo_dist > 30)&&(geo_dist < 35 )){ navigator.vibrate([500, 100, 500, 100, 500, 100, 500, 100, 500]); }
+        }
+
+        $('#output_d').text(Math.ceil(geo_dist) + "(m)");
+        };
+
+// 測地線航海算法の公式
+function geoDistance(lat1, lng1, lat2, lng2, precision) {
+  // 引数　precision は小数点以下の桁数（距離の精度）
+  var distance = 0;
+  if ((Math.abs(lat1 - lat2) < 0.00001) && (Math.abs(lng1 - lng2) < 0.00001)) {
+    distance = 0;
+  } else {
+    lat1 = lat1 * Math.PI / 180;
+    lng1 = lng1 * Math.PI / 180;
+    lat2 = lat2 * Math.PI / 180;
+    lng2 = lng2 * Math.PI / 180;
+ 
+    var A = 6378140;
+    var B = 6356755;
+    var F = (A - B) / A;
+ 
+    var P1 = Math.atan((B / A) * Math.tan(lat1));
+    var P2 = Math.atan((B / A) * Math.tan(lat2));
+ 
+    var X = Math.acos(Math.sin(P1) * Math.sin(P2) + Math.cos(P1) * Math.cos(P2) * Math.cos(lng1 - lng2));
+    var L = (F / 8) * ((Math.sin(X) - X) * Math.pow((Math.sin(P1) + Math.sin(P2)), 2) / Math.pow(Math.cos(X / 2), 2) - (Math.sin(X) - X) * Math.pow(Math.sin(P1) - Math.sin(P2), 2) / Math.pow(Math.sin(X), 2));
+ 
+    distance = A * (X + L);
+    var decimal_no = Math.pow(10, precision);
+    distance = Math.round(decimal_no * distance / 1) / decimal_no;   // kmに変換するときは(1000で割る)
+  }
+  return distance;
+}
+
+
+// sound input
+
+window.SpeechRecognition = window.SpeechRecognition || webkitSpeechRecognition;
+var recognition = new webkitSpeechRecognition();
+recognition.lang = 'ja';
+
+// 録音終了時トリガー 
+recognition.addEventListener('result', function(event){
+    var text = event.results.item(0).item(0).transcript;
+
+    console.log("DEBUG: SoundInput!!!: " + text);
+    $('#output_s').text("text:" + text);
+
+    if (( text == "チェック" )||( text == "check")|| ( text == "確認")){
+       var fetchgps = new Promise(function(resolv){
+               isInterval = true;
+               gpsset(resolv);
+            });
+           fetchgps.then(function(){
+                getDirection();
+                isInterval = false;
+
+               // userがEnemyに近づいたと判断して、Enemyにダメージと判断。
+               if (geo_dist < 20 ){
+                     gamestat.enemy.damage++;
+                     $("#enemy_dum").text("Enemy Damage: " + gamestat.enemy.damage + " point"); 
+               }
+           });
+        }; // if
+}, false);
+
+// key input
+function keyInput(){
+
+           console.log("DEBUG: keyInput call. push or Interval");
+
+       var fetchgps = new Promise(function(resolv){
+               isInterval = true;
+               gpsset(resolv);
+            });
+           fetchgps.then(function(){
+                getDirection();
+                isInterval = false;
+
+               // userがEnemyに近づいたと判断して、Enemyにダメージと判断。
+               if (geo_dist < 20 ){
+                     gamestat.enemy.damage++;
+                     $("#enemy_dum").text("Enemy Damage: " + gamestat.enemy.damage + " point"); 
+               }
+
+           });
+}
+
+
+// 録音開始
+function record()
+{
+    $('#output_s').text("text:");
+    recognition.start();
+}
+
+function mapIconSet(){
+            // 攻撃と逃走でアイコンを変える
+            if (ene_pos.status == "attack"){
+                       var mapZoom = mapobj.getZoom();
+                       switch(mapZoom) { 
+                         case 16: 
+                                 icon = "/img/ghost4_64px.png";
+                                 break;
+                         case 15:
+                                 icon = "/img/ghost4_48px.png";
+                                 break;
+                         case 14:
+                                 icon = "/img/ghost4_32px.png";
+                                 break;
+                         default:
+                                 icon = "/img/ghost4_64px.png";
+                                 break;
+                       };
+                   } else {
+                       var mapZoom = mapobj.getZoom();
+
+                       switch(mapZoom) { 
+                         case 16: 
+                                 icon = "/img/ghost2_64px.png";
+                                 break;
+                         case 15:
+                                 icon = "/img/ghost2_48px.png";
+                                 break;
+                         case 14:
+                                 icon = "/img/ghost2_32px.png";
+                                 break;
+                         default:
+                                 icon = "/img/ghost2_64px.png";
+                                 break;
+                       };
+                   }
+} // mapIconSet
+
+// 移動処理
+function EnmMove(){
+    if (! ene_pos.status ) return;
+
+    getDirection();
+    console.log("DEBUG: EnmMove START");
+
+    // 行動判定分岐
+    // 10m以下に近づいたら反転する。 enemyが近づいたと判断して、userにダメージ。
+    if ( geo_dist < 10 ) {
+                     ene_pos.status = "runaway";
+                     ene_pos.rundirect = Math.random() * 360 ;  // 逃走方向
+                     ene_pos.reng = Math.random() * 500 + 100 ; // 反転閾値
+                     
+                     // ユーザのダメージ点を加算する。
+                     gamestat.user.damage++;
+                     $("#user_dum").text("User Damage: " + gamestat.user.damage + " point");
+
+                     console.log("DEBUG: RUNAWAY RUNDIRECT: " + ene_pos.rundirect + " RENG: " + ene_pos.reng );
+                    
+                     $("#textarea").text("相手は逃走モードに入ったようです。");
+         } 
+          else if ( geo_dist > ene_pos.reng) { 
+                               ene_pos.status = "attack";
+                               
+                               $("#textarea").text("相手は反転、攻撃モードに入ったようです。");
+                               }
+
+    console.log("DEBUG: status:" + ene_pos.status + " geo_dist: " + geo_dist);
+
+    // attackルーチン
+    // 基本的に一直線にユーザへ進む
+    // 符号を調べるために百万倍で計算する。
+      var trg_diff_lat = ene_pos.latitude * 1000000 - gpslocal_pos.gpslocation.latitude * 1000000;
+      var trg_diff_lng = ene_pos.longitude * 1000000 - gpslocal_pos.gpslocation.longitude * 1000000;
+
+      console.log("DEBUG: trg_diff_lat: " + trg_diff_lat + " trg_diff_lng: " + trg_diff_lng);
+
+    if ( ene_pos.status == "attack"){
+
+        // 距離補正
+        if (geo_dist < 100 ) {
+               coll_point_spn = point_spn + 0.00005 * 1;
+            } else if (geo_dist < 200 ) {
+                  coll_point_spn = point_spn + 0.00005 * 2;
+               } else if ( geo_dist < 300 ) {
+                     coll_point_spn = point_spn + 0.00005 * 3;
+                 }
+
+        // 経度
+        if ( trg_diff_lat < 0 ) {
+                      // 近づくには、マイナスならタス
+                      ene_pos.latitude = ene_pos.latitude + (Math.random() * coll_point_spn);
+                  } else {
+                      // 近づくには、プラスならひく
+                      ene_pos.latitude = ene_pos.latitude - (Math.random() * coll_point_spn);
+                  } // if
+        // 緯度
+        if ( trg_diff_lng < 0 ) {
+                      // 近づくには、マイナスならタス
+                      ene_pos.longitude = ene_pos.longitude + (Math.random() * coll_point_spn);
+                  } else {
+                      // 近づくには、プラスならひく
+                      ene_pos.longitude = ene_pos.longitude - (Math.random() * coll_point_spn);
+                  } // if
+
+            // Enemy Maker Set...
+                makerobj2.setMap(null);
+
+                mapIconSet();
+
+                makerobj2 = new google.maps.Marker({
+                               position: new google.maps.LatLng(ene_pos.latitude, ene_pos.longitude),
+                               map: mapobj,
+                               title: "ene_pos",
+                               icon: icon
+                          });
+                // inVisible Maker
+                makerobj2.setVisible(MakerToggle);
+    } // attack
+
+    // 逃走ルーチン
+    // 逃走方向はランダムに決定、初期指定の方向へ移動するが、変移をランダムに行う。
+    if ( ene_pos.status == "runaway"){
+
+       // 逃走方向に従って変異させる
+       var runaway_dir = 1; // default seting
+       if ( ene_pos.rundirect < 90 ) { runaway_dir = 1 };
+       if (( 90 < ene_pos.rundirect )&&( ene_pos.rundirect < 180 )) { runaway_dir = 2 };
+       if (( 180 < ene_pos.rundirect )&&( ene_pos.rundirect < 270 )) { runaway_dir = 3 };
+       if (( 270 < ene_pos.rundirect )&&( ene_pos.rundirect < 360 )) { runaway_dir = 4 };
+
+       switch (runaway_dir) {
+            case 1:
+                ene_pos.latitude = ene_pos.latitude + (Math.random() * point_spn);
+                ene_pos.longitude = ene_pos.longitude + (Math.random() * point_spn);
+
+                // 距離補填
+                if ( geo_dist < 100 ) {
+                              ene_pos.latitude = ene_pos.latitude + point_spn;
+                              ene_pos.longitude = ene_pos.longitude + point_spn;
+                              }
+
+
+                // 逃走方向の変移
+                ene_pos.rundirect = ene_pos.rundirect + ( Math.random() * 20) - 10 ;  // 逃走方向
+
+                break ;
+            case 2:
+                ene_pos.latitude = ene_pos.latitude - (Math.random() * point_spn);
+                ene_pos.longitude = ene_pos.longitude + (Math.random() * point_spn);
+
+                // 距離補填
+                if ( geo_dist < 100 ) {
+                              ene_pos.latitude = ene_pos.latitude - point_spn;
+                              ene_pos.longitude = ene_pos.longitude + point_spn;
+                              }
+
+                ene_pos.rundirect = ene_pos.rundirect + ( Math.random() * 20) - 10 ;  // 逃走方向
+
+                break ;
+            case 3:
+                ene_pos.latitude = ene_pos.latitude - (Math.random() * point_spn);
+                ene_pos.longitude = ene_pos.longitude - (Math.random() * point_spn);
+
+                // 距離補填
+                if ( geo_dist < 100 ) {
+                              ene_pos.latitude = ene_pos.latitude - point_spn;
+                              ene_pos.longitude = ene_pos.longitude - point_spn;
+                              }
+
+                ene_pos.rundirect = ene_pos.rundirect + ( Math.random() * 20) - 10;  // 逃走方向
+
+                break ;
+            case 4:
+                ene_pos.latitude = ene_pos.latitude + (Math.random() * point_spn);
+                ene_pos.longitude = ene_pos.longitude - (Math.random() * point_spn);
+
+                // 距離補填
+                if ( geo_dist < 100 ) {
+                              ene_pos.latitude = ene_pos.latitude + point_spn;
+                              ene_pos.longitude = ene_pos.longitude - point_spn;
+                              }
+
+                ene_pos.rundirect = ene_pos.rundirect + ( Math.random() * 20) - 10;  // 逃走方向
+
+                break ;
+            };
+
+
+            // Enemy Maker Set...
+                makerobj2.setMap(null);
+
+                mapIconSet();
+
+                makerobj2 = new google.maps.Marker({
+                               position: new google.maps.LatLng(ene_pos.latitude, ene_pos.longitude),
+                               map: mapobj,
+                               title: "ene_pos",
+                               icon: icon
+                          });
+
+                // inVisible Maker
+                makerobj2.setVisible(MakerToggle); 
+
+    } // runaway
+
+    console.log("DEBUG: Enemy lat:" + ene_pos.latitude + " lng: " + ene_pos.longitude);
+
+} // EnmMove
+
+  // シナリオ起動 10秒単位でチェックする メインルーチン？
+$(function (){
+
+    AccelID = window.setInterval(AccelSence,SinarioInterval);
+    JairoID = window.setInterval(JairoSence,SinarioInterval);
+    Sinario();
+    SinarioEvent = window.setInterval(Sinario,SinarioInterval);
+
+});
+
+
+  //シナリオ機能
+  // gamestatの状態からテキストエリアへの情報表示
+function Sinario(){
+
+    switch(gamestat.sinario) {
+        case 0:
+            $("#textarea").text("左上メニューからGPS　Enableで現在位置をセットしてください。");
+            console.log("DEBUG: SINARIO CASE 0");
+            if (gpslocal_pos) { gamestat.sinario++; }
+        break ;
+
+        case 1:
+            $("#textarea").text("地図が表示されたら、Ghost Setを押してスタートしてください。");
+            console.log("DEBUG: SINARIO CASE 1");
+            if (ene_pos) { gamestat.sinario++; }
+        break ;
+
+        case 2:
+            $("#textarea").text("幽霊は移動しながら接近と逃走を行います。２０ｍ以内に近づいたら、相手を向いてシェイクして、撃退してください。");
+            console.log("DEBUG: SINARIO CASE 2");
+            gamestat.sinario++;
+        break ;
+
+
+        case 100:
+            $("#textarea").text("シナリオ終了 お疲れ様でした。");
+            navigator.vibrate([300, 100, 300, 100, 300, 100, 500, 100, 500, 100, 500]); 
+            console.log("DEBUG: SINARIO CASE 100");
+            clearInterval(eneMoveID);  // eneMove STOP
+            clearInterval(SinarioEvent);  // シナリオ終了
+            clearInterval(AccelID);  // 加速度センサー終了
+            clearInterval(JairoID);  // JAIROセンサー終了
+            gamestat.sinario++;
+        break ;
+
+        // メッセージエリアへのアドバイス表示
+        default:
+           console.log("DEBUG: Sinario DEFAULT");
+           var disp_rund = Math.random() * 16;
+
+           switch(Math.ceil(disp_rund)){
+              case 1:
+                  $("#textarea").text("矢印は進行方向に対して、幽霊の居る方角です。押すと方角をチェックします。");
+                  break;
+              case 2:
+                  $("#textarea").text("幽霊の接近をバイブでお知らせします。");
+                  break;
+              case 3:
+                  $("#textarea").text("矢印は進行方向に対して、幽霊の居る方角です。押すと方角をチェックします。");
+                  break;
+              case 4:
+                  $("#textarea").text("Maker　Toggleで地図上に幽霊の位置が表示されます。");
+                  break;
+              case 5:
+                  $("#textarea").text("幽霊は移動しながら接近と逃走を行います。２０ｍ以内に近づいたら、相手を向いてシェイクして、撃退してください。");
+                  break;
+           };
+
+        return ;
+   }
+
+} // Sinario
+
+
+</script>
+
+</HEAD>
+<BODY>
+<div id="hantei" data-role="page" style="background-color: #aac78d;">
+    <div data-role="header">
+        <a href="#panel" data-icon="bars" data-iconpos="notext" class="ui-btn-left">panel</a>
+        <h1>散歩ゲーム</h1>
+        <a href="#r_panel" data-icon="info" data-iconpos="notext" class="ui-btn-right">Attack</a>
+    </div>
+  <div data-role="panel" id="panel" data-display="overlay" style="background-color: #aac78d;">
+    <button type="button" class="ui-btn " onclick="gpsset(dumCall);">GPS Enable</button>
+    <button type="button" class="ui-btn " onclick="enmset();">Ghost Set</button>
+    <button type="button" class="ui-btn " onclick="hangUp();" style="background-color: #ff1111; color: #ffff00">Restart</button>
+    <button type="button" class="ui-btn " onclick="Mtoggle();">Maker Toggle</button>
+  </div>
+  <div data-role="panel" id="r_panel" data-display="overlay" data-position="right" style="background-color: #aac78d;">
+    <p>判定：<a id="user_dum"></a></p>
+    <p>判定：<a id="enemy_dum"></a></p>
+    <button type="button" class="ui-btn " onClick="record();">SOUND INPUT<a id="output_s"></a></button>
+    <button type="button" class="ui-btn " onClick="hitEmure();">HIT Emurator Support</button>
+  </div>
+  <div id="gmap" class="mapbase" style="width : 360px; height : 360px;"></div>
+  <div class="ui-grid-a">
+    <div class="ui-block-a"><div class="ui-bar"  style="hight: 60px"><button type="button" class="ui-btn " onClick="keyInput();" style="background-color: #aac78d; font-size: x-small;"><img id="arrow" class="arrow" src="/img/cyrclearrow_mos.png" width="45" hight="45"/><BR>GPS</button></div></div>
+    <div class="ui-block-b"><div class="ui-bar"  style="hight: 60px"><p>Dist：<a id="output_d"></a></p><p>攻撃判定：<a id="output">res_disp</a></p></div></div>
+  </div> <!-- ui-grid-a -->
+  <div style="border: 1px solid; background-color: #bbd89e;"><text id="textarea"></text></div>
+</div>
+
+</BODY>
+</HTML>
+

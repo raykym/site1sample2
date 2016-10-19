@@ -1,0 +1,569 @@
+% layout 'mobidef';
+% title 'Video Chat';
+<script type="text/javascript">
+
+if (!  navigator.webkitGetUserMedia) {  alert("Not Supported!!!"); }
+
+      //カメラの情報を取得
+      var cameraData = [];
+      MediaStreamTrack.getSources(function(data){
+
+        //カメラ情報を取得して、出力する
+        var strCamera = "";
+        var len = data.length;
+        for( var i = 0 ; i < len ; i ++ ){
+    %#      strCamera += "<p>種類："+ data[i].kind+"<br/>ID："+ data[i].id+"</p>";
+          if( data[i].kind == "video" ){
+            cameraData.push(data[i]);
+          }
+        }
+        %# changecamボタンのdisable
+            if (cameraData.length == 1) { $("#chgcam").prop("disabled",true);};
+            console.log("cameraData:" + cameraData.length);
+
+        if( cameraData.length == 0 ){
+          alert("カメラが見つかりません");
+          return;
+        }
+    });
+
+
+   %# カメラのデフォルトを指定
+   var camnum = 0; // カメラ指定番号たいてい０か１
+
+   function switchcam(){
+    camnum++; 
+    if( camnum == cameraData.length ){
+          camnum = 0;
+           }
+
+      if ( camnum == 0 ) { $("#chgcam").text("Change Camera [FRONT]");}
+      if ( camnum == 1 ) { $("#chgcam").text("Change Camera [BACK]");}
+
+     //カメラ再生中の場合は切り替えのため、一旦停止する。
+    if ( localStream ) {
+        localStream.stop();
+       }
+             //カメラをIDを使用して取得する
+        navigator.webkitGetUserMedia(
+          {
+            video: {
+              optional: [{sourceId: cameraData[camnum].id }] //カメラIDを直接指定する
+            },
+            audio: true
+          },
+          function(stream) {
+            localStream = stream;
+            $("#localconn").html( cameraData[camnum].id);
+           
+            document.getElementById(localconn).src = window.URL.createObjectURL(stream); 
+
+           },
+           function(error) {
+           // エラー処理
+              console.error('An error occurred: [CODE ' + error.code + ']');
+              return;
+            }
+         );
+    } // switchcam
+
+    %# カメラ切り替えボタンをクリックイベント
+    function changecam() {
+        console.log("clieck button-----------------");
+        switchcam();
+     }
+
+%# 除外してみる  $(document).on('pageshow',function(){
+
+    // websocket
+    var socketReady = false;
+    var roomname = getRoomName(); // 会議室名を取得する
+    var ws = new WebSocket('wss://westwind.iobb.net/signaling?r=' + roomname);
+
+    ws.onopen = function(){
+        console.log('Connection opened');
+        socketReady = true;
+    };
+
+    ws.onmessage = function(msg){
+        var evt = JSON.parse(msg.data);
+            console.log("evt:" + evt.type);
+        var id = evt.from;
+        var target = evt.sendto;  // call時はundef
+
+   %#     var conn = getConnection(id); 
+
+            console.log("id:" + id);
+            console.log("sendto:" + target);
+
+       if (evt.type === 'call') {
+            console.log('Receive call');
+
+    %# callしたらvideoがスタートする 最初のメンバーは自分のcallタイミングで。
+       if ( startflg === null){
+            startflg = "started";
+        %# ユーザリストからaudioエレメントを取得する
+            mlistget();
+            startvideo();
+           }
+
+       if (isConnectPossible()) {
+         %# callを受信したら、responseを返す
+          var resp = JSON.stringify({"type":"response","sendto":id});
+          ws.send(resp);
+          }
+          else {
+              console.warn('max connections. so ignore call');
+          }
+          return;
+          }
+          else if (evt.type === 'response'){
+            console.log('Receive response');
+            sendOffer(id);
+            return;
+        }  else if (evt.type === 'offer') {
+      console.log("Received offer, set offer, sending answer....")
+      onOffer(evt);
+
+      %# callを受けてコールを実行する 目的はsendcall()の実行だったりする。sendtoが正しくSDPに設定できなかった為の不具合だった。不要になった。
+%#      if (! oncall) { call() };
+
+        } else if (evt.type === 'answer') {  // **
+      console.log('Received answer, settinng answer SDP');
+      onAnswer(evt);
+        } else if (evt.type === 'candidate') { // **
+      console.log('Received ICE candidate...');
+      onCandidate(evt);
+        } else if (evt.type === 'user dissconnected') { // **
+      console.log("disconnected");
+      //stop();
+      detachVideo(id); // force detach video
+      stopConnection(id);
+       }
+    };    //onmessage
+
+    // メンバーリスト表示用websocket
+    var ws_list = new WebSocket('wss://westwind.iobb.net/roomentrylist?r=' + roomname);
+
+        ws_list.onopen = function(){
+            console.log('ws_list Conection opened');
+        };
+
+        var mlists = new Array;
+        var startflg = null;
+
+        ws_list.onmessage = function(mlist){
+            %# mlistはJSONの配列が来る pubsubメンバーリスト
+            var res = JSON.parse(mlist.data);
+        %#    console.log(mlist);
+            mlists = JSON.parse(JSON.stringify(res)); //リストをmlistsに移す
+             
+            //空にする 参加者が追加される度に更新される。
+            $("#userlist").empty();
+
+            for ( i=0; i<res.length; i++){
+                var resline = JSON.parse(res[i]); //２段目のparse カラムが取れる
+
+        %#       console.log(JSON.stringify(resline));
+                if (resline.from) continue; // from行はパス 表示ループだから。ここはsessionid
+
+  %# iconからicon_urlへの変更
+  %#              $("#userlist").append("<li><button><img src='/imgcomm?oid=" + resline.icon + "'width='50' height='50'>[" + resline.username + "]<video id=" + resline.connid +" autoplay controls width='300' height='300'></video></button></li>");
+                $("#userlist").append("<li><button><img src='" + resline.icon_url + "'width='50' height='50'>[" + resline.username + "]<video id=" + resline.connid +" autoplay controls width='300' height='300'></video></button></li>");
+                };
+
+       %# 最初のメンバーリストが届いた時にローカルストリームをスタートする。->変更　callのタイミングに移動。
+
+        };   // onmessage
+
+  function getRoomName() { // たとえば、 URLに  ?roomname  とする
+    var url = document.location.href;
+    var args = url.split('?');
+    if (args.length > 1) {
+      var room = args[1];
+      if (room != "") {
+        return room;
+      }
+    }
+    return "signal_tbl";  //signalingのデフォルト値をここで指定、空白でも大丈夫>なんだけど・・・
+  }
+
+%# 除外してみる  }); // pageshowの終わり
+
+ %#   var voicemember = new Array; 
+    var localvm = null;
+    var localconn = null;
+
+function mlistget(){
+     console.log("--- mlists get ---");
+    for ( i=0; i<mlists.length; i++){
+            var resline = JSON.parse(mlists[i]); //２段目のparse カラムが取れる
+        %# relline.fromはsessionidなので、localvmとresline.sessionidが一致した時のresline.connidがエレメントを示す
+            if (resline.from) { localvm = resline.from; continue;} //from行
+            console.log("localvm:" + localvm);
+        %#    console.log("sessionid:" + resline.sessionid);
+            console.log("connid:" + resline.connid);
+            if ( resline.sessionid === localvm ) { localconn = resline.connid;} //localvmとsessionidが一致すれば、それがローカル 
+        %#    voicemember.push(document.getElementById(resline.connid));
+            console.log("localconn:" + localconn);
+                };
+   %#    console.log("voicemember:" + voicemember.length);
+    };
+
+
+    var localstream = null;
+    var peerConnection = null;
+    var mediaConstraints = {'mandatory': {'OfferToReceiveAudio':true, 'OfferToReceiveVideo':true }};
+
+var oncall = false;
+
+function call(){
+  %# リスト更新の停止用にダミー送信
+    ws_list.send({"dummy":"dummy"}); 
+
+    oncall = true;
+
+    %# 自分でコールした場合のvideostart call受信時はバイパスされる
+       if ( startflg === null){
+            startflg = "started";
+        %# ユーザリストからaudioエレメントを取得する
+            mlistget();
+            startvideo();
+           }
+    mlistget(); // 念の為再取得
+    sendcall(); //callで各個にカメラが起動する
+
+};
+
+  // stop the connection upon user request
+  function hangUp() {
+    console.log("Hang up.");
+    ws.send({"type":"bye"});
+    detachAllvoice();
+    stopAllConnections();
+
+    window.location.reload();
+
+  }
+
+  // start local video
+  function startvideo() {
+    console.log('Start local Media');
+
+ %####  navigator.webkitGetUserMedia({video: true, audio: true},
+
+   navigator.webkitGetUserMedia({video:{
+                               optional: [{sourceId: cameraData[camnum].id }]
+                                   } , audio: true},
+      function (stream) { // success
+      localStream = stream;
+      document.getElementById(localconn).src = window.URL.createObjectURL(stream); 
+    },
+    function (error) { // error
+      console.error('An error occurred: [CODE ' + error.code + ']');
+      return;
+    }
+    );
+
+    waittimer(2);
+  }
+
+  function sendcall(){
+    // call others, in same room
+    console.log("call others in same room, befeore offer");
+    var typecall = JSON.stringify({"type":"call"});
+    console.log("typecall:" + typecall);
+    ws.send(typecall);
+  }
+
+%# セッション情報をハッシュでまとめる為のオブジェクト
+  var connections = {}; // Connection hash
+  function Connection() { // Connection Class
+    var self = this;
+    var id = "";  // socket.id of partner
+    var peerconnection = null; // RTCPeerConnection instance
+    var established = false; // is Already Established
+    var iceReady = false;
+  }
+
+  function getConnection(id) { 
+    var con = null;
+    con = connections[id];
+%#    console.log("stringify con:" + JSON.stringify(con));
+    console.log("get con:" + con);
+    return con;
+  }
+
+  function sendOffer(id) {
+    var conn = getConnection(id);
+    if (!conn) {
+      conn = prepareNewConnection(id);
+    }
+    conn.peerconnection.createOffer(function (sessionDescription) { // in case of success
+      conn.iceReady = true;
+      conn.peerconnection.setLocalDescription(sessionDescription);
+      sessionDescription.sendto = id;
+
+      %# SDPにsendtoが付加出来ないのでコピーして付加し直す。
+      var cpsdp = JSON.parse(JSON.stringify(sessionDescription));
+          cpsdp.sendto = id;
+      var newsdp = JSON.parse(JSON.stringify(cpsdp));
+
+      sendSDP(newsdp);
+    }, function () { // in case of error
+      console.log("Create Offer failed");
+    }, mediaConstraints);
+    conn.iceReady = true;
+  }
+
+  // ---------------------- connection handling -----------------------
+  function prepareNewConnection(id) {
+    var pc_config = {"iceServers":[]};
+    var pc_config = {"iceServers":[{"url":"stun:stun.l.google.com:19302"}]};
+    var pc_config = {"iceServers":[{"url":"stun:westwind.iobb.net:5349"}]};
+    var pc_config = {"iceServers":[{"url":"turn:westwind.iobb.net:5349","username":"debiansv","credential":"debiansvpass"}]};
+    var peer = null;
+    try {
+      peer = new webkitRTCPeerConnection(pc_config);
+    } catch (e) {
+      console.log("Failed to create PeerConnection, exception: " + e.message);
+    }
+    var conn = new Connection();
+    conn.id = id;
+    conn.peerconnection = peer;
+    peer.id = id;
+    addConnection(id, conn);
+    // send any ice candidates to the other peer
+    peer.onicecandidate = function (evt) {
+      if (evt.candidate) {
+   %#     console.log(evt.candidate);
+        sendCandidate({type: "candidate",
+                          sendto: conn.id,
+                          sdpMLineIndex: evt.candidate.sdpMLineIndex,
+                          sdpMid: evt.candidate.sdpMid,
+                          candidate: evt.candidate.candidate});
+      } else {
+        console.log("End of candidates. ------------------- phase=" + evt.eventPhase);
+        conn.established = true;
+      }
+    };
+
+    console.log('Adding local stream...');
+    peer.addStream(localStream);
+
+    peer.addEventListener("addstream", onRemoteStreamAdded, false);
+    peer.addEventListener("removestream", onRemoteStreamRemoved, false);
+
+    // when remote adds a stream, hand it on to the local video element
+    function onRemoteStreamAdded(event) {
+      console.log("Added remote stream");
+      attachvoice(this.id, event.stream);
+      //remoteVideo.src = window.webkitURL.createObjectURL(event.stream);
+    }
+
+    // when remote removes a stream, remove it from the local video element
+    function onRemoteStreamRemoved(event) {
+      console.log("Remove remote stream");
+      detachVideo(this.id);
+      //remoteVideo.pause();
+      //remoteVideo.src = "";
+    }
+
+    return conn;
+  }
+
+  function addConnection(id, connection) {
+    connections[id] = connection;
+    console.log("addConnection:" + id);
+  }
+
+  function sendSDP(sdp) {
+    %#    sdp.from = localconn;
+    var text = JSON.stringify(sdp);
+    console.log("---sending sdp text ---");
+ %#   console.log(text);
+
+    // send via socket
+    ws.send(text);
+  }
+
+  function sendCandidate(candidate) {
+    %#    candidate.from = localconn;
+    var text = JSON.stringify(candidate);
+    console.log("---sending candidate text ---");
+ %#   console.log(text);
+
+    // send via socket
+    ws.send(text);
+  }
+
+  function onOffer(evt) {
+    console.log("Received offer...")
+ %#   console.log(evt);
+    setOffer(evt);
+    sendAnswer(evt);
+    //peerStarted = true; --
+  }
+
+  function onAnswer(evt) {
+    console.log("Received Answer...")
+%#    console.log(evt);
+    setAnswer(evt);
+  }
+
+  function onCandidate(evt) {
+    var id = evt.from;
+    console.log("onCandidate id:" + id);
+    var conn = getConnection(id);
+    if (! conn) {
+      console.error('peerConnection not exist!');
+      return;
+    }
+
+    // --- check if ice ready ---
+    if (! conn.iceReady) {
+      console.warn("PeerConn is not ICE ready, so ignore");
+      return;
+    }
+
+    var candidate = new RTCIceCandidate({sdpMLineIndex:evt.sdpMLineIndex, sdpMid:evt.sdpMid, candidate:evt.candidate});
+    console.log("Received Candidate...")
+ %#   console.log(candidate);
+    conn.peerconnection.addIceCandidate(candidate);
+      console.log("addCandidate");
+  }
+
+  function setOffer(evt) {
+    var id = evt.from;
+    var conn = getConnection(id);
+    if (! conn) {
+      conn = prepareNewConnection(id);
+      conn.peerconnection.setRemoteDescription(new RTCSessionDescription(evt));
+    }
+    else {
+      console.error('peerConnection alreay exist!');
+    }
+  }
+
+  function sendAnswer(evt) {
+    console.log('sending Answer. Creating remote session description...' );
+    var id = evt.from;
+    var conn = getConnection(id);
+    if (! conn) {
+      console.error('peerConnection not exist!');
+      return
+    }
+
+    conn.peerconnection.createAnswer(function (sessionDescription) {
+      // in case of success
+      conn.iceReady = true;
+      conn.peerconnection.setLocalDescription(sessionDescription);
+      sessionDescription.sendto = id;
+
+      %# SDPにsendtoが付加出来ないのでコピーして付加し直す。
+      var cpsdp = JSON.parse(JSON.stringify(sessionDescription));
+          cpsdp.sendto = id;
+      var newsdp = JSON.parse(JSON.stringify(cpsdp));
+
+      sendSDP(newsdp);
+    }, function () { // in case of error
+      console.log("Create Answer failed");
+    }, mediaConstraints);
+    conn.iceReady = true;
+  }
+
+  function setAnswer(evt) {
+    var id = evt.from;
+    var conn = getConnection(id);
+    if (! conn) {
+      console.error('peerConnection not exist!');
+      return
+    }
+    conn.peerconnection.setRemoteDescription(new RTCSessionDescription(evt));
+    console.log("setAnswer Compleate!-----------------------");
+  }
+
+  function getConnectionCount() {
+    var count = 0;
+    for (var id in connections) {
+      count++;
+    }
+
+    console.log('getConnectionCount=' + count);
+    return count;
+  }
+
+  function isConnectPossible() {
+    var MAX_CONNECTION_COUNT = 10;
+    if (getConnectionCount() < MAX_CONNECTION_COUNT)
+      return true;
+    else 
+      return false;
+  }
+
+    function attachvoice(id, stream) { 
+        console.log('try to attach voice. id=' + id);
+        document.getElementById(id).src = window.URL.createObjectURL(stream);
+    }
+
+  function detachAllvoice() {
+    var element = null;
+    for (var aaa in connections) {
+        aaa = null;
+    }
+  }
+
+  function detachvoice(id) {
+     console.log("Detach Voice id=" + id);
+     document.getElementById(id).src = "";
+  }
+
+
+  function stopAllConnections() {
+    for (var id in connections) {
+      var conn = connections[id];
+      conn.peerconnection.close();
+      conn.peerconnection = null;
+      delete connections[id];
+    }
+  }
+
+    function waittimer(sec){
+        %# カメラ起動までsec秒のwait
+            var huga = 0;
+            var hoge = setInterval(function() {
+                console.log(huga);
+                huga++;
+                //終了条件
+                    if (huga == sec) {
+                        clearInterval(hoge);
+                        console.log("終わり");
+                        }
+                }, 100);
+            }
+
+</script>
+
+<div data-role="page" style="background: #80aa55">
+    <div><h3>Video Chat</h3></div>
+    <div style="color: #ff0000"><%= $msg_w %></div>
+    <div><button id="chgcam" type="button" onclick="changecam();">Change Camera</button></div>
+        <div style="border: 1px solid">
+        <ul id="userlist" data-role="listview" data-inset="true"></ul>
+        <textarea cols"=40" rows="20" id="viewarea" autogrowspace></textarea>
+        <button type="button" onclick="call();">Connect</button>
+        <button type="button" onclick="hangUp();">Hang Up</button>
+        </div>
+        <div>
+           <ul>
+             <li>画像音声は暗号化の影響でタイムラグが有ります。</li>
+             <li>初めて使うブラウザではカメラへのアクセスのポップアップが起動します。その結果タイミングがずれて表示できないケースが有ります。</li>
+             <li>スマホで外側カメラを使いたい場合、メンバーリストが表示されて、接続前にchange cameraボタンを１回押すと利用できます。</li>
+             <li style="color: #ff0000">接続中にchange cameraボタンを押すと動画が止まります。</li>
+           </ul>
+        </div>
+    <div data-role="footer" style="backgroud: #aac78d;">
+    <a href="" data-rel="back" class="btn-inline">back</a>
+    <a href="/menu" class="btn-inline">メニュー</a>
+    </div>
+</div>

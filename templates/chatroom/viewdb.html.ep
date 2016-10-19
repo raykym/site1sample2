@@ -1,0 +1,92 @@
+% layout 'mobidef2';
+% title 'chatroom';
+
+<script type="text/javascript">
+
+$(document).on('pageshow',function () {
+  $('#msg').focus();
+
+  var ws;
+  function wsCall(){
+     ws = new WebSocket('wss://westwind.iobb.net/menu/chatroom/echodb');
+  }
+  
+   wsCall();
+
+  ws.onopen = function () {
+    console.log('Connection opened');
+  };
+
+  ws.onclose = function () {
+    console.log('Connection reconnect');
+    wsCall();
+  };
+
+
+  ws.onmessage = function (msg) {
+    var res = JSON.parse(msg.data);
+    $("#output").prepend("<li><button><img src='" + res.icon_url + "' width='50' height='50'> [" + res.username + "] " + "[" + res.hms + "] " + res.text + "</button></li>");
+
+  };
+
+  $('#msg').keydown(function (e) {
+    if (e.keyCode == 13 && $('#msg').val()) {
+        if (ws.readyState != 1) { wsCall();}
+        ws.send($('#msg').val());
+        $('#msg').val('');
+    }
+  });
+
+    // 録音終了時トリガー
+    recognition.addEventListener('result', function(event){
+        var text = event.results.item(0).item(0).transcript;
+        $("#msg").val(text); 
+        if (ws.readyState != 1) { wsCall();}
+        ws.send($('#msg').val());
+        $('#msg').val('');
+    }, false);
+
+}); //pageshow
+
+// sound input
+
+window.SpeechRecognition = window.SpeechRecognition || webkitSpeechRecognition;
+var recognition = new webkitSpeechRecognition();
+recognition.lang = 'ja';
+
+// 録音開始
+function record()
+{
+    recognition.start();
+}
+
+  // リセット
+function hangUp(){
+         window.location.reload();
+    }
+
+
+</script>
+
+<div id="chatroom" data-role="page" style="background: #80aa55">
+        <div data-role="header">
+        <h3>simple chat Room</h3>
+        <a href="/menu" class="btn-inline">メニューへ戻る</a>
+        <button type="button" class="ui-btn " onclick="hangUp();" style="background-color: #ff1111; color: #ffff00">Reload</button>
+        </div>
+    <div>
+        <p>ブラウザを閉じるか、別のページヘ移動すれば切断されます。確実に切るにはブラウザを閉じましょう！</p>
+    </div>
+    <div style="color: #ff0000"><%= $msg_w %></div>
+        <div style="border: 1px solid">
+  %#      <textarea cols="40" rows="20" id="log" readonly autogrowspace></textarea>
+        <p><input type="text" id="msg" placeholder="message..."></p>
+        <p><input type="button" onClick="record()" value="SOUND INPUT" /></p>
+        <ul id="output" data-role="listview" data-inset="true"></ul>
+        </div>
+    <div data-role="footer" style="backgroud: #aac78d;">
+    <a href="" data-rel="back" class="btn-inline">back</a>
+    <a href="/menu" class="btn-inline">メニュー</a>
+    </div>
+</div>
+

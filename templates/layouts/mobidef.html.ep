@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+ <html lang="ja" manifest="appcache.mani">
+  <head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Cache-Control" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title><%= title %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+  <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+  <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<script type="text/javascript" src="https://maps.google.com/maps/api/js?sensor=true_or_false"></script>
+
+  <style type="text/css">
+  <!--
+  body {
+    _border: 1px solid;
+    _background-color: #80aa55;
+    _background: #b8f1f1;
+   }
+  div {
+    background-color: #aac78d;
+    margin: 20px; 
+    padding: 2px;
+    _border: 1px solid; 
+   }
+  div#panel {
+    background-color: #aac78d;
+    _margin: 20px; 
+    padding: 2px;
+    _border: 1px solid; 
+   }
+  div#border {
+    border: 1px solid; 
+  }
+  div#topasign {
+    position: relative; width: 140px; hight: 10px; left: 50%;
+    border: none;
+   }
+  div#checkbox {
+   background: #ffffff;
+   }
+  a {
+     _background: #aac78d;
+    text-decoration: none;
+  }
+  textarea {
+      _width: 40em;
+      _height: 10em;
+  }
+  -->
+  </style>
+  </head>
+  <body>
+  <%= content %>
+  </body>
+</html>
+
+

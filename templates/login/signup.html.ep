@@ -1,0 +1,21 @@
+% layout 'mobidef2';
+% title 'signupact';
+<div data-role="page" style="background: #80aa55;">
+<div><h3>登録ページ</h3></div>
+<div style="color: #ff0000"><%= $msg %></div>
+<div style="border: 1px solid"><h5> e-mailを登録してください。これは呼び出しに利用を想定しています。Gmailを推奨します。<br>
+usernameは表示用に利用されます。<br>
+passwordは8文字以上、英数字、記号（-!_#%&）をそれぞれ1文字以上使ってください。<br>
+</h5></div>
+<div style="border: 1px solid">
+<form method="post" action="/signupact" name="formsignup" width="500">
+   e-mail:<input type="email" name="email"><br> 
+   username:<input type="text" name="username"><br>
+   password:<input type="password" name="password"><br>
+   <input type="submit" value="登録">
+</form>
+</div>
+   <div data-role="footer" style="background: #aac78d;">
+   <a href="" data-rel="back">back</a>
+   </div>
+</div>

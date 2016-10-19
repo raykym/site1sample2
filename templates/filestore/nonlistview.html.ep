@@ -1,0 +1,23 @@
+% layout 'mobidef';
+% title 'upload list view';
+%#<script     >
+%# scriptがあればココに
+%#</script>
+
+%# 登録が無い初期ページ
+
+<div data-role="page" style="background: #80aa55">
+    <div><h3>List view</h3></div>
+    <div style="color: #ff0000"><%= $msg %></div>
+        <div style="border: 1px solid">
+            <ul data-role="listview" data-inset="true">
+               <li><a href="#">
+                   <h2>未登録<h2>
+                   </a>
+               </li>
+            </ul>
+        </div>
+    <div data-role="footer" style="backgroud: #aac78d;">
+    <a href="" data-rel="back">back</a>
+    </div>
+</div>

@@ -1,0 +1,38 @@
+% layout 'mobidef';
+% title 'Upload';
+<script type="text/javascript">
+    function filesizeCheck(id) {
+        var size=document.getElementById(id).files[0].size;
+        if ( size > 104857600 ){
+            alert( "ファイルサイズがオーバーです！！！" );
+            window.location.reload();
+             }
+        }
+</script>
+
+<div data-role="page" style="background: #80aa55">
+    <div><h3>ファイルアップロード</h3></div>
+    <div style="color: #ff0000"><%= $msg %></div>
+        <div style="border: 1px solid">
+        <form method="post" action="/menu/uploadact" enctype="multipart/form-data" data-ajax="false">
+            <div>ファイルサイズは100MBが上限です！！</div>
+         %#   <input type="file" name="filename" id="upfile" onchange="filesizeCheck(this.id)">
+            <input type="file" accept="image/*;capture=camera" name="filename" id="upfile" onchange="filesizeCheck(this.id)">
+            <input type="submit" value="upload">
+        </form>
+        <a href="/menu/listview" data-transition="flip" class="ui-btn ui-corner-all">List view</a>
+        <a href="/menu/delfileview" data-transition="flip" class="ui-btn ui-corner-all">Delete file view</a>
+        <div><h3>最新登録ファイル</h3></div>
+        <div>
+           %# hashrefを使ったので順番制御が出来ない。。。arrayrefを使うべきだった。
+           %   for my $i (keys %$filelist){
+              <li> <%= $filelist->{$i}->{filename} %> </li> 
+           %   }
+        </div>
+    </div>
+    <div data-role="footer" style="background: #aac78d;">
+    <a href="" data-rel="back">back</a>
+    </div>
+</div>
+
+

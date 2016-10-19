@@ -1,0 +1,36 @@
+% layout 'mobidef2';
+% title 'mainmenu';
+<div data-role="page" id="menu-top" style="background: #80aa55;">
+    <div>
+        <h1>ThisSite</h1>
+    </div>
+  <div role="main" class="ui-content">
+        <h3>ようこそ、<%= $username %>さん</h3>
+        <p>このサイトは、サイト構築の習作として構築しています。文言やイメージなど統一性もありませんが、機能を追加しながら実験する為のサイトです。</p>
+        <h2><%= $msg %></h2>
+        <a href="/walkworld/view" class="ui-btn" data-transition="flip" rel="external">散歩World</a>
+        <a href="/testhtml/rewrite_walkgame.html" class="ui-btn" data-transition="flip" rel="external">散歩ゲーム</a>
+%#        <a href="/menu/chatopen" class="ui-btn" data-transition="flip" rel="external">オープンチャット</a>
+  %#      <a href="/menu/chatroom" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">チャット(websocket test)</a>
+        <a href="/menu/chatroomdb" class="ui-btn" data-transition="flip" rel="external">チャット(mongoDB base)</a>
+%#        <a href="/menu/chatroompg" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">チャット(mongoDB base pubsub)</a>
+%#        <p>WebRTCはスマホでは受信出来ない場合があります。テザリングして別の端末からなら可能です。</p>
+%#        <a href="/webrtc/test-sdi-2-sig.html" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">WebRTC(テストサンプル)</a>
+%#        <a href="/webrtcx2" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">WebRTC(1対1)</a>
+%#        <p>OPEN CHANELは接続している人と接続します</p>
+%#        <a href="/voicechat" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">VoiceChat(OPEN CHANNEL)</a>
+%#        <a href="/videochat" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">VideoChat(OPEN CHANNEL)</a>
+        <p>CLOSED CHANELはroom名を知っているメンバーだけで接続出来ます</p>
+        <a href="/voicechat2" class="ui-btn" data-transition="flip" rel="external">VoiceChat(CLOSED CHANNEL)</a>
+        <a href="/videochat2" class="ui-btn" data-transition="flip" rel="external">VideoChat(CLOSED CHANNEL)</a>
+        <div></div>
+%#        <a href="/menu/mirror" class="ui-btn" data-transition="flip" rel="external">ミラー(Video TEST)</a>
+        <a href="/menu/upload" class="ui-btn" data-transition="flip" rel="external">ファイルアップロード</a>
+        <a href="/menu/settings" class="ui-btn" data-transition="flip">設定変更</a>
+
+    </div>
+    <div data-role="footer" style="backgroud: #aac78d;">
+    <a href="/" class="ui-btn ui-btn-inline">top</a>
+    </div>
+</div>
+

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+  <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+  <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+  <script src="https://apis.google.com/js/client.js?onload=gauth"></script>
+
+  <script type="text/javascript">
+//  .getScript("https://apis.google.com/js/client.js", gauth);
+
+   var client_secret = "dbkzeWnrH-w6g9mO4V9nFeCV";
+   var client_id = "861600582037-3418phlu34lekqd7r11htn244d37nmel.apps.googleusercontent.com";
+   var scope = "https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/pubsub";
+
+  function gauth {
+         //Client_Secretをセット
+    gapi.client.setApiKey(client_secret);
+    //認証を行います。setTimoutしているのは認証中にブラウザが待ち状態になってしまうのを防ぐため。
+    setTimeout(function(){
+            gapi.auth.authorize({client_id: client_id, scope: scope, immediate: true}, handleAuthResult);
+          },1); 
+  }
+
+function handleAuthResult(authResult)
+          if (authResult && !authResult.error) {
+             //認証情報の処理
+
+          var jsonres = JSON_Stringthly(authResult);
+          console.log("DEBUG: " + jsonres );
+          }
+}
+
+
+  </script>
+
+
+
+ </head>
+<body>
+    <div>responce</div>
+</body>
+</html>

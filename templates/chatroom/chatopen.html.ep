@@ -1,0 +1,112 @@
+% layout 'mobidefopenchat';
+% title 'Open Chat';
+
+<script type="text/javascript">
+
+$(document).on('pageshow',function () {
+  $('#msg').focus();
+
+  var ws = null;
+
+function wsopen() {
+  var ws = new WebSocket('wss://westwind.iobb.net/echopubsub');
+  return ws;
+}
+  ws = wsopen();
+
+  ws.onopen = function () {
+    console.log('Connection opened');
+
+    soket_wait = setInterval(function (){
+        var dummsg = {"dummy":"dummy"};
+        ws.send(JSON.stringify(dummsg));
+        console.log("socket wait sending!");
+        }, 30000); //30sec
+  };
+
+  ws.onclose = function(){
+        clearInterval(socket_wait);
+        sokect_wait = null;
+        console.log("socket_wait STOP.");
+   }
+
+  ws.onmessage = function (msg) {
+    var res = JSON.parse(msg.data);
+   $("#output").prepend("<li><button><img src='" + res.icon_url + "' width='50' height='50'>[" + res.username + "] " + "[" + res.hms + "] " + res.text + "</button></li>");
+
+ %#      console.log("msg:" + res);
+ %#      console.log("icon_url:" + res.icon_url);
+ %#      console.log("username:" + res.username);
+ %#      console.log("hms:" + res.hms);
+ %#      console.log("text:" + res.text);
+
+ %#   var text = JSON.stringify(res);
+ %#   console.log("DEBUG:" + text);
+  };
+
+  $('#msg').keydown(function (e) {
+    if (e.keyCode == 13 && $('#msg').val()) {
+
+        var mess = {"text":$('#msg').val()};
+        var messjson = JSON.stringify(mess);    
+        ws.send(messjson);
+        $('#msg').val('');
+        $('#sendfile').val('');
+    }
+  });
+
+// 録音終了時トリガー
+recognition.addEventListener('result', function(event){
+    var text = event.results.item(0).item(0).transcript;
+    $("#msg").val(text);
+        var mess = {"text":$('#msg').val()};
+        var messjson = JSON.stringify(mess);
+        ws.send(messjson);
+        $('#msg').val('');
+        $('#sendfile').val('');
+}, false);
+
+
+});  //wsopen
+
+// sound input
+
+window.SpeechRecognition = window.SpeechRecognition || webkitSpeechRecognition;
+var recognition = new webkitSpeechRecognition();
+recognition.lang = 'ja';
+
+
+// 録音開始
+function record()
+{
+    recognition.start();
+}
+
+
+</script>
+
+<div id="chatroom" data-role="page" style="background: #80aa55">
+    <div data-role="header">
+        <a href="#panel" data-icon="bars" data-iconpos="notext">panel</a>
+        <h1>ThisSite</h1>
+    </div>
+    <div data-role="panel" id="panel" data-display="overlay">
+        <ul id="voicepanel" data-role="listview">
+            <li><a href="/voicechat2" class="ui-btn" rel="external" target="_blank">ボイスチャット(CLOSED CHANNEL)</a></li>
+            <li><a href="/videochat" class="ui-btn" rel="external" target="_blank">ビデオチャット(OPEN CHANNEL)</a></li>
+        </ul>
+    </div>
+    <div><h3>Open chat</h3></div>
+    <div style="color: #ff0000"><%= $msg_w %></div>
+        <div style="border: 1px solid">
+        <p><input type="text" id="msg" placeholder="message..."></p>
+        <p><input type="file" id="sendfile" name="fname"></p>
+        <p><input type="button" onClick="record()" value="SOUND INPUT" /></p>
+        <ul id="output" data-role="listview" data-inset="true"></ul>
+        </div>
+    <div data-role="footer" style="backgroud: #aac78d;">
+    <a href="" data-rel="back" class="btn-inline">back</a>
+    <a href="/menu" class="btn-inline">メニュー</a>
+    </div>
+</div>
+

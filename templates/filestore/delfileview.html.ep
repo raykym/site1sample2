@@ -1,0 +1,52 @@
+% layout 'mobidef';
+% title 'delete list view';
+%#<script     >
+%# scriptがあればココに
+%#</script>
+
+<div data-role="page" style="background: #80aa55">
+    <div><h3>Delete List view</h3></div>
+    <div style="color: #ff0000"><%= $msg %></div>
+        <div>
+            <a href="/menu/delfileview?page=<%= $page-1 %>" class="ui-btn ui-btn-inline">前へ</a>
+            <a href="/menu/delfileview?page=<%= $page+1 %>" class="ui-btn ui-btn-inline">次へ</a>
+        </div>
+        <div style="border: 1px solid;">
+            <form method="post" action="/menu/delfileviewact" data-ajax="false" >
+            <ul data-role="listview" data-inline="true">
+            % foreach my $i (@$filelist){
+                   %# $i[oid,filename,mime,disabled=""] -------> 
+                   <li data-icon="delete" style="background: #aac78d">
+                      <label>
+                      <input <%= $i->[3] %> type="checkbox" name="delfile" value="<%= $i->[0] %>"> 
+                      Check it!
+                      </label>
+                      <button type="submit" value="view">
+  %# ######### 画像以外のファイルはアイコンと差し替える判定分を入れる
+ %# mimeで表示を切り替える
+ %    if ( $i->[2] =~ /jpeg|jpg|png|gif/) {
+                      <img src="/imgload?oid=<%= $i->[0] %> " width="100" height="100">
+ %           }
+ %    if ( $i->[2] =~ /mp3|mpeg|mp4|3gpp|video/ ) {
+                      <img src="/img/mpeg.jpeg" width="100" height="100">
+ %           }
+ %    if ( $i->[2] =~ /pdf/ ) {
+                      <img src="/img/pdf.jpeg" width="100" height="100">
+ %           }
+ %    if ( $i->[2] =~ /zip/ ) {
+                      <img src="/img/zip.jpeg" width="100" height="100">
+ %           }
+
+                      <h2><%= $i->[1] %> DELETE!!! OK?<h2>
+                      </button>
+                   </li>
+            % }
+            </ul>
+            </form>
+        </div>
+    <div data-role="footer" style="backgroud: #aac78d;">
+    <a href="" data-rel="back" class="btn-inline">back</a>
+    <a href="/menu" class="btn-inline">メニュー</a>
+    </div>
+</div>
+

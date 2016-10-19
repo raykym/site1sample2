@@ -1,0 +1,17 @@
+% layout 'mobidef2';
+% title 'signinact';
+<div data-role="page" style="background: #80aa55;">
+    <div><h3>ログインページ</h3></div>
+    <div style="color: #ff0000"><%= $msg %></div>
+    <div style="border: 1px solid"><h5> 登録したe-mailアドレスとパスワードを入力してください。</h5></div>
+    <div style="border: 1px solid">
+        <form method="post" action="/signinact">
+               e-mail:<input type="email" name="email"><br> 
+               password:<input type="password" name="password"><br>
+               <input type="submit" value="ログイン">
+        </form>
+    </div>
+   <div data-role="footer" style="background: #aac78d;">
+   <a href="" data-rel="back">back</a>
+   </div>
+</div>

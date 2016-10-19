@@ -1,0 +1,545 @@
+% layout 'mobidef';
+% title 'Voice Chatspot';
+<script type="text/javascript">
+
+ if (! navigator.webkitGetUserMedia) {  alert("Not Supported!!!"); }
+
+%# 根本的に画面構成を変えないと無作為な接続は出来ないか。。。。。
+
+    // websocket
+    var socketReady = false;
+
+    var ws = null;
+    ws = new WebSocket('wss://westwind.iobb.net/wsocket/signaling');
+
+    var socket_wait = null;
+
+    ws.onopen = function(){
+        console.log('Connection opened');
+        socketReady = true;
+
+   %# 接続維持用
+    soket_wait = setInterval(function (){
+       var dummsg = {"dummy":"dummy"};
+       ws.send(JSON.stringify(dummsg)); 
+       console.log("socket wait sending!");
+        }, 50000);
+    };
+
+    ws.onclose = function(){
+        socketReady = false;
+        console.log("Close:" + socketReady);
+    };
+
+    ws.onerror = function(){
+       alert("please Reload, Reconnect websocket!"); 
+    };
+
+    var connid = null;
+
+    var startflg = null; //localstream用フラグ
+
+    %# call()でボタンの押し間違いをチェックする
+    var memberlist = new Array;
+    var memberlistobj = new Array;
+
+    ws.onmessage = function(msg){
+                var evt = JSON.parse(msg.data);
+        %#        console.log(JSON.stringify(evt));
+        %#        console.log("evt.from:" + evt.from);
+        %#        console.log("evt.type:" + evt.type);
+        %#        console.log("evt.reslist:" + evt.reslist);
+
+                  %# 表示用リスト
+                var memlist = evt.reslist;
+        %#        console.log("memlist:" + memlist);
+
+                %# リスト表示用処理
+           if (evt.type === 'reslist'){
+
+                %# リストの場合だけmemberlistを更新する。
+                memberlist = memlist;
+
+                  connid = evt.from;   // global定義
+        %#        console.log("view connid:" + connid);
+        %#        console.log("memlist.length:" + memlist.length);
+
+            //空にする 参加者が追加される度に更新される。
+        %#    $("#userlist").empty();
+                for (i=0; i<memlist.length; i++){
+                      var resline = JSON.parse(memberlist[i]);
+         %#           console.log("username:" + resline.username);
+         %#           console.log("icon_url:" + resline.icon_url);
+         %#           console.log("ready:" + resline.ready);
+         %#           console.log("sessionid:" + resline.sessionid);
+         %#           console.log("connid:" + resline.connid);
+                console.log("memberlist:" + resline.username + resline.icon_url);
+                      memberlistobj.push(resline);
+                } // for
+
+       %# 最初のメンバーリストが届いた時にローカルストリームをスタートする。
+       if ( startflg === null){
+            startflg = "started";
+        %# ユーザリストからaudioエレメントを取得する
+            startvoice();
+           }
+     }  // type reslist
+
+          if (evt.type === "reloadmember"){
+              %# 他のメンバーのstandbyを確認する リロードするとローカルストリームが切れるので再スタート
+              member();
+              startvoice();
+          }
+
+    // SDP,ICE処理 
+    var id = evt.from;
+    var target = evt.sendto;  // call時はundef
+
+        console.log("id:(from)" + id);
+        console.log("target:(sendto)" + target);
+
+       if (evt.type === 'call') {
+            console.log('Receive call');
+
+           if (isConnectPossible()) {
+             %# callを受信したら、responseを返す
+              var resp = JSON.stringify({"type":"response","sendto":id});
+              ws.send(resp);
+              console.log("send response----->");
+              }
+              else {
+                  console.warn('max connections. so ignore call');
+              }
+              return;
+              }
+              else if (evt.type === 'response'){
+                console.log('Receive response');
+                sendOffer(id);
+                return;
+            }  else if (evt.type === 'offer') {
+              console.log("Received offer, set offer, sending answer....")
+              onOffer(evt);
+
+            } else if (evt.type === 'answer') {  // **
+              console.log('Received answer, settinng answer SDP');
+              onAnswer(evt);
+            } else if (evt.type === 'candidate') { // **
+              console.log('Received ICE candidate...');
+              onCandidate(evt);
+            } else if (evt.type === 'user dissconnected') { // **
+              console.log("disconnected");
+              //stop();
+              detachvoice(id); // force detach video
+              stopConnection(id);
+           }
+     } //onmessage
+
+// start local audio
+function startvoice() {
+    console.log('Start local Media');
+
+    navigator.webkitGetUserMedia({video: false, audio: true},
+    function (stream) { // success
+      localStream = stream;
+    },
+    function (error) { // error
+      console.error('An error occurred: [CODE ' + error.code + ']');
+      return;
+    }
+    );
+} // startvoice
+
+  function getConnectionCount() {
+    var count = 0;
+    for (var id in connections) {
+      count++;
+    }
+
+    console.log('getConnectionCount=' + count);
+    return count;
+  }
+
+  function isConnectPossible() {
+    var MAX_CONNECTION_COUNT = 10;
+    if (getConnectionCount() < MAX_CONNECTION_COUNT)
+      return true;
+    else
+      return false;
+  }
+
+  function sendOffer(id) {
+    var conn = getConnection(id);
+    if (!conn) {
+      conn = prepareNewConnection(id);
+    }
+    conn.peerconnection.createOffer(function (sessionDescription) { // in case of success
+      conn.iceReady = true;
+      conn.peerconnection.setLocalDescription(sessionDescription);
+      sessionDescription.sendto = id;
+
+      %# SDPにsendtoが付加出来ないのでコピーして付加し直す。
+      var cpsdp = JSON.parse(JSON.stringify(sessionDescription));
+          cpsdp.sendto = id;
+      var newsdp = JSON.parse(JSON.stringify(cpsdp));
+
+      sendSDP(newsdp);
+    }, function () { // in case of error
+      console.log("Create Offer failed");
+    }, mediaConstraints);
+    conn.iceReady = true;
+  }
+
+  // ---------------------- connection handling -----------------------
+  function prepareNewConnection(id) {
+    var pc_config = {"iceServers":[]};
+    var pc_config = {"iceServers":[{"url":"stun:stun.l.google.com:19302"}]};
+    var pc_config = {"iceServers":[{"url":"stun:westwind.iobb.net:5349"}]};
+    var pc_config = {"iceServers":[{"url":"turn:westwind.iobb.net:5349","username":"debiansv","credential":"debiansvpass"}]};
+    var peer = null;
+    try {
+      peer = new webkitRTCPeerConnection(pc_config);
+    } catch (e) {
+      console.log("Failed to create PeerConnection, exception: " + e.message);
+    }
+    var conn = new Connection();
+    conn.id = id;
+    conn.peerconnection = peer;
+    peer.id = id;
+    addConnection(id, conn);
+    // send any ice candidates to the other peer
+    peer.onicecandidate = function (evt) {
+      if (evt.candidate) {
+  %#      console.log(evt.candidate);
+        sendCandidate({type: "candidate",
+                          sendto: conn.id,
+                          sdpMLineIndex: evt.candidate.sdpMLineIndex,
+                          sdpMid: evt.candidate.sdpMid,
+                          candidate: evt.candidate.candidate});
+      } else {
+        console.log("End of candidates. ------------------- phase=" + evt.eventPhase);
+        conn.established = true;
+      }
+    };
+
+    console.log('Adding local stream...');
+    peer.addStream(localStream);
+
+    peer.addEventListener("addstream", onRemoteStreamAdded, false);
+    peer.addEventListener("removestream", onRemoteStreamRemoved, false);
+
+    // when remote adds a stream, hand it on to the local video element
+    function onRemoteStreamAdded(event) {
+      console.log("Added remote stream");
+      attachvoice(this.id, event.stream);
+      //remoteVideo.src = window.webkitURL.createObjectURL(event.stream);
+    }
+
+    // when remote removes a stream, remove it from the local video element
+    function onRemoteStreamRemoved(event) {
+      console.log("Remove remote stream");
+      detachvoice(this.id);
+      //remoteVideo.pause();
+      //remoteVideo.src = "";
+    }
+
+    return conn;
+  }
+
+%# セッション情報をハッシュでまとめる為のオブジェクト
+  var connections = {}; // Connection hash
+  function Connection() { // Connection Class
+    var self = this;
+    var id = "";  // socket.id of partner
+    var peerconnection = null; // RTCPeerConnection instance
+    var established = false; // is Already Established
+    var iceReady = false;
+  }
+
+  function getConnection(id) {
+    var con = null;
+    con = connections[id];
+%#    console.log("stringify con:" + JSON.stringify(con));
+    console.log("get con:" + JSON.stringify(con));
+    return con;
+  }
+
+  function onOffer(evt) {
+    console.log("Received offer...")
+ %#   console.log(evt);
+    setOffer(evt);
+    sendAnswer(evt);
+    //peerStarted = true; --
+  }
+
+  function onAnswer(evt) {
+    console.log("Received Answer...")
+%#    console.log(evt);
+    setAnswer(evt);
+  }
+
+ function onCandidate(evt) {
+    var id = evt.from;
+    console.log("onCandidate id:" + id);
+    var conn = getConnection(id);
+    if (! conn) {
+      console.error('peerConnection not exist!');
+      return;
+    }
+
+    // --- check if ice ready ---
+    if (! conn.iceReady) {
+      console.warn("PeerConn is not ICE ready, so ignore");
+      return;
+    }
+    var candidate = new RTCIceCandidate({sdpMLineIndex:evt.sdpMLineIndex, sdpMid:evt.sdpMid, candidate:evt.candidate});
+    console.log("Received Candidate...")
+ %#   console.log(candidate);
+    conn.peerconnection.addIceCandidate(candidate);
+      console.log("addCandidate");
+  }
+
+  function detachvoice(id) {
+     console.log("Detach Voice id=" + id);
+     document.getElementById(id).src = "";
+  }
+
+  function addConnection(id, connection) {
+    connections[id] = connection;
+    console.log("addConnection:" + id);
+  }
+
+
+ %# room名入力を受けるための処理
+$(document).on('pageshow',function () {
+
+      $('#roomname').focus();
+
+      $('#roomname').keydown(function (e) {
+        if (e.keyCode == 13 && $('#roomname').val()) {
+            var chars = $('#roomname').val();
+            var entryevt = {'entry' : chars };
+            ws.send(JSON.stringify(entryevt));
+      %#      console.log("key Down echo");
+            %# 画面更新
+            member();
+      %# 他のメンバーへ画面のリロード指定
+            var reloadmember = {"type":"reloadmember"};
+            ws.send(JSON.stringify(reloadmember));
+            }
+       });
+}); // pageshow
+
+function standby(){
+    %# 準備OK設定
+    var readygo = { 'setReady' : connid };
+    ws.send(JSON.stringify(readygo));
+    console.log(JSON.stringify(readygo));
+
+    %# 画面のリロード
+    member();
+
+    %# 他のメンバーへ画面のリロード指定
+    var reloadmember = {"type":"reloadmember"};
+    ws.send(JSON.stringify(reloadmember));
+    }
+
+    var localstream = null;
+    var peerConnection = null;
+    var mediaConstraints = {'mandatory': {'OfferToReceiveAudio':true, 'OfferToReceiveVideo':false }};
+
+var oncall = false;
+
+function call(){
+
+       console.log("Call Start!");
+
+  %# メンバー全員のreadyをチェック
+    var memcnt = memberlist.length;
+        console.log("memcnt:" + memcnt);
+    var discnt = 0;
+    for (i=0; i<memcnt; i++){
+        var resline = JSON.parse(memberlist[i]);
+        if ( resline.ready == '1' ) { discnt++ };
+    };
+
+        console.log("discnt:" + discnt);
+
+    if ( discnt !== memcnt || memcnt == 0) {
+         alert("Wait for Standby ALL members!");
+         return;
+    }; 
+
+    oncall = true;
+    sendcall();
+
+    %# 50秒単位のwait送信を止める ->spotでは止めない。
+%#    clearInterval(socket_wait);
+%#    sokect_wait = null;
+%#    console.log("socket_wait STOP.");
+}
+
+function sendcall(){
+    // call others, in same room
+    console.log("call others in same room, befeore offer");
+    var typecall = JSON.stringify({"type":"call"});
+    console.log("typecall:" + typecall);
+    ws.send(typecall);
+}
+
+  function sendSDP(sdp) {
+    %#    sdp.from = localconn;  //signalingで付加している。
+    var text = JSON.stringify(sdp);
+    console.log("---sending sdp text ---");
+%#    console.log("sendSDP:" + text);
+
+    // send via socket
+    ws.send(text);
+  }
+
+  function sendCandidate(candidate) {
+    %#    candidate.from = localconn;
+    var text = JSON.stringify(candidate);
+    console.log("---sending candidate text ---");
+%#    console.log(text);
+
+    // send via socket
+    ws.send(text);
+  }
+
+  function setOffer(evt) {
+    var id = evt.from;
+    var conn = getConnection(id);
+    if (! conn) {
+      conn = prepareNewConnection(id);
+      conn.peerconnection.setRemoteDescription(new RTCSessionDescription(evt));
+    }
+    else {
+      console.error('peerConnection alreay exist!');
+    }
+  }
+
+ function sendAnswer(evt) {
+    console.log('sending Answer. Creating remote session description...' );
+    var id = evt.from;
+    var conn = getConnection(id);
+    if (! conn) {
+      console.error('peerConnection not exist!');
+      return
+    }
+
+    conn.peerconnection.createAnswer(function (sessionDescription) {
+      // in case of success
+      conn.iceReady = true;
+      conn.peerconnection.setLocalDescription(sessionDescription);
+      sessionDescription.sendto = id;
+
+      var cpsdp = JSON.parse(JSON.stringify(sessionDescription));
+          cpsdp.sendto = id;
+      var newsdp = JSON.parse(JSON.stringify(cpsdp));
+
+      sendSDP(newsdp);
+    }, function () { // in case of error
+      console.log("Create Answer failed");
+    }, mediaConstraints);
+    conn.iceReady = true;
+  }
+
+  function setAnswer(evt) {
+    var id = evt.from;
+    var conn = getConnection(id);
+    if (! conn) {
+      console.error('peerConnection not exist!');
+      return
+    }
+    conn.peerconnection.setRemoteDescription(new RTCSessionDescription(evt));
+    console.log("setAnswer Compleate!-----------------------");
+  }
+
+    function attachvoice(id, stream) {
+        console.log('try to attach voice. id=' + id);
+        document.getElementById(id).src = window.URL.createObjectURL(stream);
+    }
+
+  function detachAllvoice() {
+    var element = null;
+    for (var id in connections) {
+        id = null;
+    }
+  }
+
+  function detachvoice(id) {
+     console.log("Detach Voice id=" + id);
+     document.getElementById(id).src = "";
+  }
+
+
+  function stopAllConnections() {
+    for (var id in connections) {
+      var conn = connections[id];
+      conn.peerconnection.close();
+      conn.peerconnection = null;
+      delete connections[id];
+    }
+  }
+
+function member(){
+   %# メンバーリストの更新
+    var getlist = {"getlist":"dummy"};
+    ws.send(JSON.stringify(getlist));
+    console.log("getlist:" + JSON.stringify(getlist));
+
+}
+
+function hangUp(){
+
+    window.location.reload();
+
+}
+
+function leaveroom(){
+    var leaveflg={"bye": connid};
+    ws.send(JSON.stringify(leaveflg));
+    console.log("Leave Room:" + connid);
+
+   window.location.reload();
+}
+
+
+</script>
+
+<div data-role="page" style="background: #80aa55">
+    <div><h3>Voice Chatsopt</h3></div>
+    <div style="color: #ff0000"><%= $msg_w %></div>
+        <div style="border: 1px solid">
+            <p>room名はわかりやすく短いものを使いましょう。</p>
+            <p><input type="text" id="roomname" placeholder="room..."></p>
+  %#          <button type="button" onclick="member();">Memberlist Reload</button>
+            <button type="button" class="ui-btn ui-btn-inline" onclick="standby();">Standby</button>
+            <button type="button" class="ui-btn ui-btn-inline" onclick="call();">Connect</button>
+            <button type="button" class="ui-btn ui-btn-inline" onclick="hangUp();">Hang Up</button>
+            <button type="button" class="ui-btn ui-btn-inline" onclick="leaveroom();">Leave Room</button>
+
+            <ul id="userlist" data-role="listview" data-inset="true"></ul>
+               $("#userlist").text("<li><button><img src='" + memberlistobj[0].icon_url + "' width='50' height='50'>[" + memberlistobj[0].username + "]<audio id="media1" autoplay controls></audio></button></li>");
+                <li><button><img src='" + memberlist[1].icon_url + "' width='50' height='50'>[" + memberlist[1].username + "]<audio id="media2" autoplay controls></audio></button></li>
+                <li><button><img src='" + memberlist[2].icon_url + "' width='50' height='50'>[" + memberlist[2].username + "]<audio id="media3" autoplay controls></audio></button></li>
+                <li><button><img src='" + memberlist[3].icon_url + "' width='50' height='50'>[" + memberlist[3].username + "]<audio id="media4" autoplay controls></audio></button></li>
+                <li><button><img src='" + memberlist[4].icon_url + "' width='50' height='50'>[" + memberlist[4].username + "]<audio id="media5" autoplay controls></audio></button></li>
+                <li><button><img src='" + memberlist{5].icon_url + "' width='50' height='50'>[" + memberlist[5].username + "]<audio id="media6" autoplay controls></audio></button></li>
+                <li><button><img src='" + memberlist[6].icon_url + "' width='50' height='50'>[" + memberlist[6].username + "]<audio id="media7" autoplay controls></audio></button></li>
+                <li><button><img src='" + memberlist[7].icon_url + "' width='50' height='50'>[" + memberlist[7].username + "]<audio id="media8" autoplay controls></audio></button></li>
+                <li><button><img src='" + memberlist[8].icon_url + "' width='50' height='50'>[" + memberlist[8].username + "]<audio id="media9" autoplay controls></audio></button></li>
+                <li><button><img src='" + memberlist[9].icon_url + "' width='50' height='50'>[" + mwmberlist[9].username + "]<audio id="media10" autoplay controls></audio></button></li>
+        </div>
+        <div>
+           <ul>
+             <li>音声は暗号化の影響でタイムラグが有ります。</li>
+             <li>インジケーターは接続を確認できますが、切断されても認識出来ないので、あくまで目安程度です。</li>
+             <li>端末の状態で接続出来ないケースがあります。Google play等でupdateが走ると処理が重くてつながらないケースがあります。</li1>
+           </ul>
+        </div>
+    <div data-role="footer" style="backgroud: #aac78d;">
+    <a href="" data-rel="back" class="btn-inline">back</a>
+    <a href="/menu" class="btn-inline">メニュー</a>
+    </div>
+</div>

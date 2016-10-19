@@ -1,0 +1,53 @@
+% layout 'mobidef';
+% title 'chatroompg';
+
+<script type="text/javascript">
+
+$(document).on('pageshow',function () {
+  $('#msg').focus();
+
+%# OLD log
+%#  var log = function (text) {
+%#    $('#log').val( $('#log').val() + text + "\n");
+%#  };
+
+  var ws = new WebSocket('wss://westwind.iobb.net/menu/chatroom/echopg');
+  ws.onopen = function () {
+    log('Connection opened');
+  };
+
+  ws.onmessage = function (msg) {
+    var res = JSON.parse(msg.data);
+%# $iconからicon_urlへ変更、エコーサーバで対応
+%#    $("#output").prepend("<li><button><img src='/imgcomm?oid=" + res.icon + "'  width='50' height='50'>" + "[" + res.username + "] " + "[" + res.hms + "] " + res.text + "</button></li>");
+    $("#output").prepend("<li><button><img src='" + res.icon_url + "' width='50' height='50'>" + "[" + res.username + "] " + "[" + res.hms + "] " + res.text + "</button></li>");
+ %#### OLD    log('{' + res.username + '}' + '[' + res.hms + '] ' + res.text);
+  };
+
+  $('#msg').keydown(function (e) {
+    if (e.keyCode == 13 && $('#msg').val()) {
+        ws.send($('#msg').val());
+        $('#msg').val('');
+    }
+  });
+
+});
+</script>
+
+<div id="chatroom" data-role="page" style="background: #80aa55">
+    <div>
+        <h3>simple chat Room</h3>
+        <p>ブラウザを閉じるか、別のページヘ移動すれば切断されます。確実に切るにはブラウザを閉じましょう！</p>
+    </div>
+    <div style="color: #ff0000"><%= $msg_w %></div>
+        <div style="border: 1px solid">
+  %#      <textarea cols="40" rows="20" id="log" readonly autogrowspace></textarea>
+        <p><input type="text" id="msg" placeholder="message..."></p>
+        <ul id="output" data-role="listview" data-inset="true"></ul>
+        </div>
+    <div data-role="footer" style="backgroud: #aac78d;">
+    <a href="" data-rel="back" class="btn-inline">back</a>
+    <a href="/menu" class="btn-inline">メニュー</a>
+    </div>
+</div>
+

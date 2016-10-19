@@ -1,0 +1,14 @@
+% layout 'monidef2';
+% title 'username settng';
+<div data-role="page" style="background: #80aa55;">
+      <div><h1>ThisSite</h1><div>
+      <div role="main" class="ui-content">
+         <form method="post" action="/menu/settings/unameact" width="500">
+             username:  <input type="text" name="username"><br>
+             <input type="submit" value="変更">
+         </form>
+      </div>
+    <div data-role="footer" style="background: #aac78d;">
+    <a href="" data-rel="back">back</a>
+    </div>
+</div>
