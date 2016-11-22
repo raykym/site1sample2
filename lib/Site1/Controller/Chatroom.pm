@@ -168,7 +168,7 @@ sub echodb {
                      $chkmsg->ngword;
                   my $res_chkmsg = $chkmsg->result;
                   my $chkmsg_string = decode_utf8($chkmsg->{string}); 
-              #    $self->app->log->info("DEBUG: res_chkmsg: $res_chkmsg | $chkmsg_string ");
+              #    $self->app->log->debug("DEBUG: res_chkmsg: $res_chkmsg | $chkmsg_string ");
                   undef $chkmsg;
 
                   # drop処理
@@ -428,9 +428,10 @@ sub signaling {
     my $self = shift;
 
     # webRTC用にシグナルサーバとしてJSONを受けてそのままJSONを届ける
-    # セッションテーブルをPGのsignal_tblに作成。websocket切断で削除される。
+    # セッションテーブルをredisのsignal_tblに作成。websocket切断で削除される。
     # 呼び出し元のURLに引数?r=ルーム名をつけるとテーブルを作成して、そのテーブルにsubscribeする。
     # メッセージ内にsendtoが含まれる場合、sessionidが指定されて、個別送信とする。
+    # Pgからredisへの書き換え実施
 
     #cookieからsid取得
     my $sid = $self->cookie('site1');
@@ -440,7 +441,7 @@ sub signaling {
     my $icon_url = $self->stash('icon_url');
        $icon_url = "/imgcomm?oid=$icon" if (! defined $icon_url);
 
-    # getパラメータでroom指定を行う。 ->roomはそのままテーブル名として利用 
+    # getパラメータでroom指定を行う。 ->roomはリスト名として利用 
     my $room = $self->param('r');
     if ( ! defined $room ) { $room = 'signal_tbl'; }
     $self->app->log->debug("DEBUG: room: $room");
@@ -449,23 +450,37 @@ sub signaling {
     $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
     my $id = sprintf "%s", $self->tx->connection;
     $clients->{$id} = $self->tx;
-    # トランザクションidをpubsubの受信に利用する
-    my $connid = $self->tx->connection;
+    # sidをpubsubの受信に利用する
+    my $connid = $sid;
+
+    my $recvlist = [ $sid , $room ];
 
     # postgresqlの準備 Site1.pmに共通設定追加
  #####       my $pg = Mojo::Pg->new('postgresql://sitedata:sitedatapass@192.168.0.8/sitedata');
-        my $pg = $self->app->pgdbh;
-        my $pubsub = Mojo::Pg::PubSub->new(pg => $pg);
+#        my $pg = $self->app->pgdbh;
+#        my $pubsub = Mojo::Pg::PubSub->new(pg => $pg);
  # 目的を見失った行       my $subscall = Mojo::Pg::PubSub->new(pg => $pg);
+#
+#           $pg->db->query("CREATE TABLE IF NOT EXISTS $room (connid text, sessionid text,username varchar(255),icon_url char(255))");
+#           $self->app->log->debug("INFO: CREATE TABLE $room");
+#
+#    my @values = ($connid, $sid, $username, $icon_url);
+#       $self->app->log->debug("INFO: @values");
+#
+#    #リスナー登録　pgのsignal_tblへsidを登録 $roomがテーブル名
+#        $pg->db->query("INSERT INTO $room values(?,?,?,?)",@values);
+# 上記はredis移行の為、不要になった
 
-           $pg->db->query("CREATE TABLE IF NOT EXISTS $room (connid text, sessionid text,username varchar(255),icon_url char(255))");
-           $self->app->log->info("INFO: CREATE TABLE $room");
+     # room LISTへの登録
+     my $entry = { connid => $sid, username => $username, icon_url => $icon_url };
 
-    my @values = ($connid, $sid, $username, $icon_url);
-       $self->app->log->info("INFO: @values");
+     my $entry_json = to_json($entry);
 
-    #リスナー登録　pgのsignal_tblへsidを登録 $roomがテーブル名
-        $pg->db->query("INSERT INTO $room values(?,?,?,?)",@values);
+      #重複を避ける為に一度削除、空処理も有り
+        $self->redis->lrem($room,'1',$entry_json);
+
+      # redis LISTにエントリー
+        $self->redis->lpush($room => $entry_json);
 
 
     # 接続維持設定 WebRTCではICE交換が終わればすぐにwebsocketは閉じたい。
@@ -473,7 +488,7 @@ sub signaling {
     # 接続タイミングを合わせるまでは接続を続ける必要がある。
        my $stream = Mojo::IOLoop->stream($self->tx->connection);
           $stream->timeout(60);
-          $self->inactivity_timeout(3000);
+    #      $self->inactivity_timeout(3000);
        #つなぎっぱなしの為のループ  ・・・ つながれば切れてOKなので
        Mojo::IOLoop->recurring(
           50 => sub {
@@ -482,20 +497,41 @@ sub signaling {
              $clients->{$id}->send( {binary => $bytes}) if ($clients->{$id}->is_websocket);
           });
 
-    #pubsubから受信設定 
-        my $cb = $pubsub->listen($connid => sub {
-            my ($pubsub, $payload) = @_;
+#    #pubsubから受信設定 
+#        my $cb = $pubsub->listen($connid => sub {
+#            my ($pubsub, $payload) = @_;
+#
+#            #JSONキャラ->perl形式
+#            my $jsonobj = from_json($payload);
+#
+#      ###       my $connid = $self->tx->connection;
+#                 $self->app->log->debug("DEBUG: go session: $connid");
+#             #    $self->app->log->debug("DEBUG: payload: $payload");
+#
+#                 #websocketは自分にだけ送信する
+#                 $clients->{$id}->send({ json => $jsonobj});
+#          });
+# 上記もredisに置き換え
 
-            #JSONキャラ->perl形式
-            my $jsonobj = from_json($payload);
+         #redis receve
+         $self->redis->on(message => sub {
+                my ($redis,$mess,$channel) = @_;
 
-      ###       my $connid = $self->tx->connection;
-                 $self->app->log->debug("DEBUG: go session: $connid");
-             #    $self->app->log->debug("DEBUG: payload: $payload");
+                    $self->app->log->debug("DEBUG: on channel: {$channel} ($username) $mess");
 
-                 #websocketは自分にだけ送信する
-                 $clients->{$id}->send({ json => $jsonobj});
-          });
+                    my $messobj = from_json($mess);
+
+                    #websocket送信 perl形式->jsonへ変換されている。
+                    $clients->{$id}->send({json => $messobj});
+
+                    return;
+                 });  # redis on message
+
+        $self->redis->subscribe($recvlist, sub {
+                 my ($redis, $err) = @_;
+                       #     return $redis->publish('errmsg' => $err) if $err;
+                       return $redis->incr($recvlist);
+                 });
 
     # on message・・・・・・・
        $self->on(message => sub {
@@ -513,17 +549,22 @@ sub signaling {
 
               if ($jsonobj->{sendto}){
                  #個別送信が含まれる場合、単独送信
-                 $pubsub->notify( $jsonobj->{sendto} => $msg);
+                 $self->redis->publish( $jsonobj->{sendto} , $msg);
 
               } else {
               # 個別では無い場合！！！
               # 書き込みを通知 signal_tblにsubscriberされたidのみ通知
               # 自分は除外する。
-              my $subs_member = $pg->db->query("SELECT * FROM $room");
-              while ( my $subs_id = $subs_member->hash){
-                   $pubsub->notify( $subs_id->{connid} => $msg) unless ($connid eq $subs_id->{connid});
-                   $self->app->log->debug("DEBUG: subs_id: $subs_id->{connid}") unless ($connid eq $subs_id->{connid});
-              }
+          #    my $subs_member = $pg->db->query("SELECT * FROM $room");
+          #    while ( my $subs_id = $subs_member->hash){
+          #         $pubsub->notify( $subs_id->{connid} => $msg) unless ($connid eq $subs_id->{connid});
+          #         $self->app->log->debug("DEBUG: subs_id: $subs_id->{connid}") unless ($connid eq $subs_id->{connid});
+          #    }
+          # 上記はredisに置き換え
+               # チャットルーム全体に送信
+               $self->redis->publish( $room , $msg);
+               $self->app->log->debug("DEBUG: publish: $username :  $room : $msg");
+
              } # else
           });
 
@@ -535,11 +576,25 @@ sub signaling {
                delete $clients->{$id};
 
                # pubsubリスナーの停止
-               if ( ! defined $clients->{$id}){ $pubsub->unlisten($connid => $cb); }
-               # リスナー登録の解除 削除はconnidではなくそのままsidで・・・
-               $pg->db->query("DELETE FROM $room WHERE sessionid = ?" , $sid);
-               $self->app->log->info("INFO: DEL Entry $room $sid");
-        });
+            #   if ( ! defined $clients->{$id}){ $pubsub->unlisten($connid => $cb); }
+            #   # リスナー登録の解除 削除はconnidではなくそのままsidで・・・
+            #   $pg->db->query("DELETE FROM $room WHERE sessionid = ?" , $sid);
+            #   $self->app->log->info("INFO: DEL Entry $room $sid");
+            #上記はredisに置き換え
+
+                # pubsubのunsubscribe
+                $self->redis->unsubscribe($recvlist, sub {
+                       my ($redis, $err) = @_;
+
+                          return;
+                       });
+                # LIST登録の解除
+                $self->redis->lrem($room,'1', $entry_json);
+                $self->app->log->debug("DEBUG: finish: lrem: $entry_json");
+                $self->app->log->debug('Client disconnected');
+                delete $clients->{$id};
+
+        });  # on finish
 
 }
 
@@ -563,17 +618,19 @@ sub roomentrycheck {
     my $room = $self->param('r');
     if ( ! defined $room) { $room = 'signal_tbl'};
 
-    my $pg = $self->app->pgdbh;
+ #   my $pg = $self->app->pgdbh;
+ # redis移行で不要に
 
     my $stream = Mojo::IOLoop->stream($self->tx->connection);
-       $stream->timeout(3000);
-       $self->inactivity_timeout(3000);
+       $stream->timeout(60);
+    #   $self->inactivity_timeout(3000);
 
-    my $result;
+#    my $result;
     my $roomcount;
     my $loopid = Mojo::IOLoop->recurring( 10 => sub {
-                $result = $pg->db->query("SELECT count(*) FROM $room");
-                $roomcount = $result->hash->{count};
+            #    $result = $pg->db->query("SELECT count(*) FROM $room");
+            #    $roomcount = $result->hash->{count};
+                 $roomcount = $self->redis->llen($room);
                 my $jsontext = to_json( {count => $roomcount});
                 $self->app->log->debug("send jsontext: $jsontext");
                 $self->tx->send($jsontext);
@@ -602,9 +659,9 @@ sub roomentrylist {
     my $self = shift;
     # websocketで入室状況を送信する。r=XXXXXで受け取ったルーム名のエントリーメンバーをJSONで返す。
     #voicechatのメンバー表示用 connidとsessionidを返すのでエレメントとして利用
-    # signaling側のconnidでroomentrylistのconnidでは無い。！
 
     my $sid = $self->cookie('site1');
+    my $username = $self->stash('username');
 
     #websocket 確認
     $self->app->log->debug(sprintf 'room Client connected: %s', $self->tx);
@@ -615,55 +672,83 @@ sub roomentrylist {
     my $room = $self->param('r');
     if ( ! defined $room) { $room = 'signal_tbl'};
 
+    my $recvlist = [ "roomentry" ];
+
+
     #DB設定
 ####    my $pg = $self->app->pgdbh;
-    my $pg = $self->app->pg;
-    my $pubsub = Mojo::Pg::PubSub->new(pg => $pg);
-
-    my $config = $self->app->plugin('Config');
-    my $sth_sesi_email = $self->app->dbconn->dbh->prepare("$config->{sql_sesi_email}");
-    my $sth_getchatmemb = $self->app->dbconn->dbh->prepare("$config->{sql_getchatmemb}");
+#    my $pg = $self->app->pg;
+#    my $pubsub = Mojo::Pg::PubSub->new(pg => $pg);
+#
+#    my $config = $self->app->plugin('Config');
+#    my $sth_sesi_email = $self->app->dbconn->dbh->prepare("$config->{sql_sesi_email}");
+#    my $sth_getchatmemb = $self->app->dbconn->dbh->prepare("$config->{sql_getchatmemb}");
+# redis移行で上記は不要に
 
     my $stream = Mojo::IOLoop->stream($self->tx->connection);
        $stream->timeout(60);
 #       $self->inactivity_timeout(3000);
 
     #pubsubから受信設定 
-        my $cb = $pubsub->listen('roomentry' => sub {
-            my ($pubsub, $payload) = @_;
+#        my $cb = $pubsub->listen('roomentry' => sub {
+#            my ($pubsub, $payload) = @_;
+#
+#                  $self->app->log->debug("ROOMENTRY: $payload");
+#
+#                  # 通知が届いたら切断する
+#                  $self->tx->finish;
+#           });
+# redis移行でコメント
 
-                  $self->app->log->debug("ROOMENTRY: $payload");
+         #redis receve
+         $self->redis->on(message => sub {
+                my ($redis,$mess,$channel) = @_;
 
-                  # 通知が届いたら切断する
-                  $self->tx->finish;
-           });
+                    $self->app->log->debug("DEBUG: on channel: {$channel} ($username) $mess");
 
-    my $result;
-    my @memberlist;
+                   # 通知が届いたら切断する
+                    $self->tx->finish;
+
+                    return;
+                 });  # redis on message
+
+        $self->redis->subscribe($recvlist, sub {
+                 my ($redis, $err) = @_;
+                       #     return $redis->publish('errmsg' => $err) if $err;
+                       return $redis->incr($room);
+                 });
+
+
+ #   my $result;
+    my $memberlist;
 
     my $loopid = Mojo::IOLoop->recurring( 
              1 => sub {
-                $result = $pg->db->query("SELECT connid,sessionid,username,icon_url FROM $room");
-                # $result  $_->{sessionid}の配列の想定
-                ####my $rownum = $result->rows;  # 何故か1回で０に成る。。
-          #      my $resultcount = $pg->db->query("SELECT count(*) FROM $room");
-          #      my $rownum = $resultcount->hash->{count};
-          #      $self->app->log->debug("room rows: $rownum");
+ #               $result = $pg->db->query("SELECT connid,sessionid,username,icon_url FROM $room");
+ #               # $result  $_->{sessionid}の配列の想定
+ #               ####my $rownum = $result->rows;  # 何故か1回で０に成る。。
+ #         #      my $resultcount = $pg->db->query("SELECT count(*) FROM $room");
+ #         #      my $rownum = $resultcount->hash->{count};
+ #         #      $self->app->log->debug("room rows: $rownum");
+ #
+ #         # 送信元id 付加
+ #                push @memberlist, to_json({from => $sid});
+ #               while (my $next = $result->hash){
+ #                   push @memberlist, to_json({sessionid => $next->{sessionid}, username => $next->{username}, icon_url => $next->{icon_url}, connid => $next->{connid}});
+ #         #         $self->app->log->debug("memberlist: $next->{sessionid} $next->{username} $next->{icon}");
+ #               } #while
 
-          # 送信元id 付加
-                 push @memberlist, to_json({from => $sid});
-                while (my $next = $result->hash){
-                    push @memberlist, to_json({sessionid => $next->{sessionid}, username => $next->{username}, icon_url => $next->{icon_url}, connid => $next->{connid}});
-          #         $self->app->log->debug("memberlist: $next->{sessionid} $next->{username} $next->{icon}");
-                } #while
+              $memberlist = $self->redis->lrange($room,'0','-1');
+
+              #以前はfromを付けていたが、javascriptで無視しているので、あえて書かない
 
               # 配列で１ページ分を送る。
-                @memberlist = to_json([@memberlist]);
-                $self->app->log->debug("send jsontext: @memberlist");
-                $self->tx->send(@memberlist);
+                my @memberlist_json = to_json([@$memberlist]);
+                $self->app->log->debug("send jsontext: @memberlist_json");
+                $self->tx->send(@memberlist_json);
 
-                @memberlist = (); #空にする
-                $result = {}; #エラー消える。 何故？
+                @memberlist_json = (); #空にする
+          #      $result = {}; #エラー消える。 何故？
                 });
 
        $self->on(message => sub {
@@ -672,13 +757,21 @@ sub roomentrylist {
                   $self->app->log->debug("ROOMENTRY: $msg");
                   $self->tx->finish;
                 # その他のメンバーにも通知する
-                 $pubsub->notify( 'roomentry' => $msg);
+#                 $pubsub->notify( 'roomentry' => $msg);
+                  $self->redis->publish( $recvlist , $msg );
         });
 
        $self->on(finish => sub{
           Mojo::IOLoop->remove($loopid);
           $self->app->log->debug('roomentrylist stop...');
-       });
+
+          # リスナー登録の解除
+            $self->redis->unsubscribe($recvlist, sub {
+                     my ($redis, $err) = @_;
+                        $self->app->log->debug("DEBUG: unsbscribe $username ");
+                        return;
+                   }); # redis
+       }); # finish
 }
 
 sub videochat {
@@ -691,14 +784,14 @@ sub voicechat2 {
     my $self = shift;
     # webroom.pmへの対応用ページ
 
-    $self->render(msg_w => '１．共通のroom名を入力して待機して下さい。(エンター押してね）２．メンバーがそろったらStandbyを押して下さい。３．全員がStandbyしたら、connectボタンを押して通話状態を確認して下さい。');
+    $self->render(msg_w => '');
 }
 
 sub videochat2 {
     my $self = shift;
     # webroom.pmへの対応用ページ
 
-    $self->render(msg_w => '１．共通のroom名を入力して待機して下さい。(エンター押してね）２．メンバーがそろったらStandbyを押して下さい。３．全員がStandbyしたら、connectボタンを押して通話状態を確認して下さい。');
+    $self->render(msg_w => '');
 }
 
 sub chatopen {

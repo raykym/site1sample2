@@ -14,7 +14,7 @@ sub startup {
                        listen => ['http://*:3800'],
                        accepts => 100,
                        clients => 1,
-                       workers => 120,
+                       workers => 100,
                        proxy => 1,
                        });
 
@@ -88,9 +88,9 @@ sub startup {
 #  $bridge->websocket('/menu/chatroom/echo')->to(controller => 'Chatroom', action => 'echo');
   $bridge->websocket('/menu/chatroom/echodb')->to(controller => 'Chatroom', action => 'echodb');
 #  $bridge->websocket('/menu/chatroom/echopg')->to(controller => 'Chatroom', action => 'echopg');
-#  $bridge->websocket('/signaling')->to(controller => 'Chatroom', action => 'signaling');
+  $bridge->websocket('/signaling')->to(controller => 'Chatroom', action => 'signaling');
 #  $bridge->websocket('/roomentrycheck')->to(controller => 'Chatroom', action => 'roomentrycheck');
-#  $bridge->websocket('/roomentrylist')->to(controller => 'Chatroom', action => 'roomentrylist');
+  $bridge->websocket('/roomentrylist')->to(controller => 'Chatroom', action => 'roomentrylist');
   $bridge->websocket('/wsocket/signaling')->to(controller => 'Webroom', action => 'signaling');
 #  $bridge->websocket('/echopubsub')->to(controller => 'Chatroom', action => 'echopubsub');
 #  $bridge->websocket('/webnotice')->to(controller => 'Webnotice', action => 'webnotice');
@@ -151,7 +151,7 @@ sub startup {
 
 #  $bridge->get('/webrtcx4')->to('chatroom#webrtcx4'); # 未完
 #  $bridge->get('/webrtcx2')->to('chatroom#webrtcx2');
-#  $bridge->get('/voicechat')->to('chatroom#voicechat');
+  $bridge->get('/voicechat')->to('chatroom#voicechat');
 #  $bridge->get('/videochat')->to('chatroom#videochat');
   $bridge->get('/voicechat2')->to('chatroom#voicechat2');
   $bridge->get('/videochat2')->to('chatroom#videochat2');

@@ -11,10 +11,9 @@
 
     // websocket
     var socketReady = false;
-    var roomname = getRoomName(); // 会議室名を取得する
 
     var ws = null;
-    ws = new WebSocket('wss://westwind.iobb.net/wsocket/signaling?r=' + roomname);
+    ws = new WebSocket('wss://westwind.iobb.net/wsocket/signaling');
 
     var socket_wait = null;
 
@@ -115,6 +114,7 @@
               %# 他のメンバーのstandbyを確認する リロードするとローカルストリームが切れるので再スタート
               member();
               startvoice();
+              return;
           }
 
     // SDP,ICE処理 
@@ -186,7 +186,7 @@ function startvoice() {
   }
 
   function isConnectPossible() {
-    var MAX_CONNECTION_COUNT = 10;
+    var MAX_CONNECTION_COUNT = 25;
     if (getConnectionCount() < MAX_CONNECTION_COUNT)
       return true;
     else
@@ -218,9 +218,9 @@ function startvoice() {
   // ---------------------- connection handling -----------------------
   function prepareNewConnection(id) {
     var pc_config = {"iceServers":[]};
-    var pc_config = {"iceServers":[{"url":"stun:stun.l.google.com:19302"}]};
-%#    var pc_config = {"iceServers":[{"url":"stun:westwind.iobb.net:5349"}]};
-%#    var pc_config = {"iceServers":[{"url":"turn:westwind.iobb.net:5349","username":"debiansv","credential":"debiansvpass"}]};
+%#    var pc_config = {"iceServers":[{"url":"stun:stun.l.google.com:19302"}]};
+    var pc_config = {"iceServers":[{"url":"stun:instance-1.backbone.site:5349"}]};
+    var pc_config = {"iceServers":[{"url":"turn:instance-1.backbone.site:5349","username":"debiansv","credential":"0xb7b9c73f9cba1d0f51454edec4fac01a"}]};
     var peer = null;
     try {
       peer = new webkitRTCPeerConnection(pc_config);
@@ -623,16 +623,30 @@ function gpsset(){
     <div><h3>Voice Chat</h3></div>
     <div style="color: #ff0000"><%= $msg_w %></div>
         <div style="border: 1px solid">
-            <p>room名はわかりやすく短いものを使いましょう。</p>
+            <p>
+               <div data-role="collapsibleset">
+                <div data-role="collapsible">
+                  <h4>使い方</h4>
+                     <ul data-role="listview">
+                        <li style="color: #0000ff">１．共通のroom名を入力してエンター押してください。</li>
+                        <li style="color: #0000ff">２．メンバーがそろったらStandbyを押して下さい。（アイコンが変わります）</li>
+                        <li style="color: #0000ff">３．全員がStandbyしたら、connectボタンを押して通話状態を確認して下さい。</li>
+                        <li style="color: #ff0000">４．hungUpで終了して下さい。</li>
+                        <li style="color: #0000ff">＊connect後に参加者が居ると通話が切断されます。HungUpからもう一度roomエントリーをして下さい。</li>
+                     </ul>
+                 </div>
+               </div>
+            </p>
+            <p>room名は大文字小文字、全角半角を区別します。重複しない程度の長さで利用して下さい。</p>
             <ul id="userlist" data-role="listview" data-inset="true"></ul>
             <p><input type="text" id="roomname" placeholder="room..."></p>
     %#        <button type="button" onclick="member();">Memberlist Reload</button>
             <button type="button" class="ui-btn ui-btn-inline" onclick="standby();">Standby</button>
             <button type="button" class="ui-btn ui-btn-inline" onclick="call();">Connect</button>
-            <button type="button" class="ui-btn ui-btn-inline" onclick="hangUp();">Hang Up</button>
+            <button type="button" class="ui-btn ui-btn-inline" style="color: #ff0000" onclick="hangUp();">Hang Up</button>
         </div>
         <div>
-           <a href="mailto:?subject=チャットへの招待&body=https://westwind.iobb.net/voicechat2 へアクセスして、room名”　　　　”に入って下さい。（アカウント登録が必要になります。もしくはgoogle+アカウントが利用出来ます。）" class="ui-btn">チャットへの招待メール起動</a>
+           <a href="mailto:?subject=チャットへの招待&body=https://westwind.iobb.net/voicechat2 へアクセスして、room名”　　　”に入って下さい。（アカウント登録が必要になります。もしくはgoogle+アカウントが利用出来ます。）" class="ui-btn">チャットへの招待メール起動</a>
            <ul>
              <li>音声は暗号化の影響でタイムラグが有ります。</li>
              <li>インジケーターは接続を確認できますが、切断されても認識出来ないので、あくまで目安程度です。</li>

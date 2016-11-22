@@ -298,9 +298,9 @@ function startvoice() {
   // ---------------------- connection handling -----------------------
   function prepareNewConnection(id) {
     var pc_config = {"iceServers":[]};
-    var pc_config = {"iceServers":[{"url":"stun:stun.l.google.com:19302"}]};
-    var pc_config = {"iceServers":[{"url":"stun:westwind.iobb.net:5349"}]};
-    var pc_config = {"iceServers":[{"url":"turn:westwind.iobb.net:5349","username":"debiansv","credential":"debiansvpass"}]};
+ %#   var pc_config = {"iceServers":[{"url":"stun:stun.l.google.com:19302"}]};
+    var pc_config = {"iceServers":[{"url":"stun:instance-1.backbone.site:5349"}]};
+    var pc_config = {"iceServers":[{"url":"turn:instance-1.backbone.site:5349","username":"debiansv","credential":"debiansvpass"}]};
     var peer = null;
     try {
       peer = new webkitRTCPeerConnection(pc_config);
@@ -612,6 +612,20 @@ function hangUp(){
 <div data-role="page" style="background: #80aa55">
     <div><h3>Video Chat</h3></div>
     <div style="color: #ff0000"><%= $msg_w %></div>
+            <p>
+               <div data-role="collapsibleset">
+                <div data-role="collapsible">
+                  <h4>使い方</h4>
+                     <ul data-role="listview">
+                        <li style="color: #0000ff">１．共通のroom名を入力してエンター押してください。</li>
+                        <li style="color: #0000ff">２．メンバーがそろったらStandbyを押して下さい。（アイコンが変わります）</li>
+                        <li style="color: #0000ff">３．全員がStandbyしたら、connectボタンを押して通話状態を確認して下さい。</li>
+                        <li style="color: #ff0000">４．hungUpで終了して下さい。</li>
+                        <li style="color: #0000ff">＊connect後に参加者が居ると通話が切断されます。HungUpからもう一度roomエントリーをして下さい。</li>
+                     </ul>
+                 </div>
+               </div>
+            </p>
     <div><button id="chgcam" type="button" onclick="changecam();">Change Camera</button></div>
         <div style="border: 1px solid">
             <p>room名はわかりやすく短いものを使いましょう。</p>
@@ -620,7 +634,7 @@ function hangUp(){
   %#          <button type="button" onclick="member();">Memberlist Reload</button>
             <button type="button" class="ui-btn ui-btn-inline" onclick="standby();">Standby</button>
             <button type="button" class="ui-btn ui-btn-inline" onclick="call();">Connect</button>
-            <button type="button" class="ui-btn ui-btn-inline" onclick="hangUp();">Hang Up</button>
+            <button type="button" class="ui-btn ui-btn-inline" style="color: #ff0000" onclick="hangUp();">Hang Up</button>
         </div>
         <div>
            <ul>

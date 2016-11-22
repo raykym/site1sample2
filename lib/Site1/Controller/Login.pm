@@ -115,6 +115,7 @@ sub signupact {
 sub usercheck {
     my $self = shift;
     # 認証が必要な場合すべてこのパスを通過する
+    # redisでキャッシュして応答速度を上げる
 
        $self->app->log->debug('Notice: Usercheck ON!');
 
@@ -133,6 +134,31 @@ sub usercheck {
         $self->redirect_to('/');
         return;
       }
+
+    # redisバイパスチェック
+    my $userredis = $self->redis->get($sid);
+
+    if (defined $userredis) {
+
+             my $userobj = from_json($userredis);
+
+        #     $self->app->log->info("DEBUG: redis: $userredis");
+        #     $self->app->log->info("DEBUG: redis: $userobj->{email}");
+
+        # $iconを無くす方向で考えていたが、表示で利用していたので削除出来なかった。
+            $self->stash( email => $userobj->{email} );
+            $self->stash( username => $userobj->{username} );
+            $self->stash( uid => $userobj->{uid} ); #uidはページで利用しないのでencodeしない
+            $self->stash( icon => $userobj->{icon} );
+            $self->stash( icon_url => $userobj->{icon_url} );
+
+        undef $userredis;
+        undef $userobj;
+
+        # underのため、stashに設定して次へ
+        return 1;
+        }
+
 
     # sidからチェック開始 (signup_tbl)
        $sth_sid_chk->execute($sid);
@@ -227,6 +253,18 @@ sub usercheck {
     $self->stash( icon => $icon );
     $self->stash( icon_url => $icon_url );
 
+    # redis登録
+    if ( ! defined $icon_url) {
+           $icon_url = "/imgcomm?oid=$icon"; 
+        } 
+
+    my $jsonobj = { email => $email, username => $username, uid => $uid, icon => $icon, icon_url => $icon_url };
+    my $jsontext = to_json($jsonobj);
+
+       $self->redis->set($sid => $jsontext);
+       $self->redis->expire( $sid => 3600);
+
+
   # 変数の解放
   undef $config;
   undef $sth_sid_chk;
@@ -241,6 +279,8 @@ sub usercheck {
   undef $value;
   undef $valueobj;
   undef $get_value;
+  undef $jsonobj;
+  undef $jsontext;
   
   # underのため、stashに設定して次へ
   return 1;

@@ -18,7 +18,7 @@ sub signaling {
      #Chatroom.pmのsignaringとroomentrylistをマージした処理を作る。
      # connectの同期を取るためにreadyフラグを用意している。
      # さらにチャットも機能させる
-     # open対応にスイッチを設定r=open
+     # open対応にスイッチを設定r=open 動作しない。。。
 
     #cookieからsid取得 認証を経由している前提
     my $sid = $self->cookie('site1');
@@ -81,7 +81,7 @@ my $recvlist;
                       $entry_json = to_json($entry);
 
                    #重複を避ける為に一度削除、空処理も有り
-                   $self->redis->lrem($chatroomname,'1',$entry_json);
+                   $self->redis->lrem($jsonobj->{entry},'1',$entry_json);
 
                    # redis LISTにエントリー
                    $self->redis->lpush($jsonobj->{entry} => $entry_json);
@@ -91,22 +91,7 @@ my $recvlist;
                    $self->app->log->debug("DEBUG: $username entry finish.");             
 
 
-           #        #redis receve
-           #        $self->redis->on(message => sub {
-           #               my ($redis,$mess,$channel) = @_;
-
-           #               if ( $channel == 'WALKCHAT' ) { return; } # WALKCHATは除外する
-           #                   $self->app->log->debug("DEBUG: on channel: {$channel} ($username) $mess");
-                     
-           #                   my $messobj = from_json($mess);
-
-           #                   #websocket送信 perl形式->jsonへ変換されている。
-           #                   $clients->{$id}->send({json => $messobj});
-
-           #                   return;
-           #                });  # redis on message
-
-                  $self->redis->subscribe($recvlist, sub {
+                   $self->redis->subscribe($recvlist, sub {
                            my ($redis, $err) = @_;
                                  #     return $redis->publish('errmsg' => $err) if $err;
                                  return $redis->incr($recvlist);
@@ -120,6 +105,7 @@ my $recvlist;
                   $self->app->log->debug("setreadyconn: $jsonobj->{setReady}");
                   # LISTから削除
                   $self->redis->lrem($chatroomname,'1',$entry_json);
+                  $self->app->log->debug("setreadyconn: lrem: $entry_json");
                   # LIST更新  1 is true
                    my $entry = { connid => $sid, username => $username, icon_url => $icon_url, ready => 1 };
                       $entry_json = to_json($entry);
