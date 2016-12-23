@@ -44,10 +44,11 @@ sub signaling {
     my $memberlist;
     my $chatroomname;
     my $entry_json;
+    my $altmemberlist = [];
 
 #受信用リスト
-my $recvlist;
-   $recvlist = [ $sid ];
+my @recvlist;
+   @recvlist = ( $sid );
 
     # on message・・・・・・・
        $self->on(message => sub {
@@ -71,9 +72,10 @@ my $recvlist;
            if ( $jsonobj->{entry} ) {
 
                       # 受信リストの追加
-                      push(@$recvlist,$jsonobj->{entry});
-                      my $debugjson = to_json($recvlist);
-                      $self->app->log->debug("DEBUG: recvlist: $debugjson");
+                      push(@recvlist,$jsonobj->{entry});
+
+                   # nameはsubscribe用
+                   $chatroomname = "$jsonobj->{entry}";
 
                       # 0 is false
                    my $entry = { connid => $sid, username => $username, icon_url => $icon_url, ready => 0 };
@@ -81,21 +83,22 @@ my $recvlist;
                       $entry_json = to_json($entry);
 
                    #重複を避ける為に一度削除、空処理も有り
-                   $self->redis->lrem($jsonobj->{entry},'1',$entry_json);
+                   $self->redis->del("LIST$chatroomname$sid");
 
-                   # redis LISTにエントリー
-                   $self->redis->lpush($jsonobj->{entry} => $entry_json);
-
-                   $chatroomname = $jsonobj->{entry};
+                   #list用キーの設定
+                   $self->redis->set("LIST$chatroomname$sid" => $entry_json);
+                   $self->redis->expire( "LIST$chatroomname$sid" => 3600 );
 
                    $self->app->log->debug("DEBUG: $username entry finish.");             
 
 
-                   $self->redis->subscribe($recvlist, sub {
+                   $self->redis->subscribe(\@recvlist, sub {
                            my ($redis, $err) = @_;
                                  #     return $redis->publish('errmsg' => $err) if $err;
-                                 return $redis->incr($recvlist);
+                                 return $redis->incr(@recvlist);
                            });
+                   $self->redis->expire( $sid => 3600 );
+                   $self->redis->expire( $chatroomname => 3600 );
 
                     return;
                   } # $jsonobj->{entry}
@@ -103,14 +106,15 @@ my $recvlist;
               # setReadyを受信  connidを受信するが、利用しなくなった。Redisの為
               if ($jsonobj->{setReady}) {
                   $self->app->log->debug("setreadyconn: $jsonobj->{setReady}");
-                  # LISTから削除
-                  $self->redis->lrem($chatroomname,'1',$entry_json);
-                  $self->app->log->debug("setreadyconn: lrem: $entry_json");
+
                   # LIST更新  1 is true
                    my $entry = { connid => $sid, username => $username, icon_url => $icon_url, ready => 1 };
                       $entry_json = to_json($entry);
-                      $self->redis->lpush($chatroomname => $entry_json);
-                      # 結果はgetlistが呼ばれるのでこれだけ
+
+                  # 結果はgetlistが呼ばれるのでこれだけ
+
+                   #キーの更新
+                   $self->redis->set("LIST$chatroomname$sid" => $entry_json);
 
                   $self->app->log->debug("DEBUG: setReady on $username");
                  return;
@@ -131,19 +135,32 @@ my $recvlist;
                    my $jsontxt = to_json($jsonobj);
                    
                    $self->redis->publish( $jsonobj->{sendto} , $jsontxt);
+                   $self->redis->expire( $jsonobj->{sendto} => 3600 );
                    $self->app->log->debug("DEBUG: sendto: $jsonobj->{sendto} ");
   
                    return;  # スルーすると全体通信になってしまう。
                    } 
 
 
+
         #エントリーメンバーを送信コマンドの受信 自分宛て
              if ($jsonobj->{getlist}){
+ 
+                  $altmemberlist = [];
 
-                 $memberlist = $self->redis->lrange($chatroomname,'0','-1');
+                 my $roomkeylist = $self->redis->keys("LIST$chatroomname*");
+                 my $roomkeylistdump = to_json($roomkeylist);
+                    $self->app->log->info("DEBUG: roomkeylist: $roomkeylistdump");
+
+                 foreach my $aline (@$roomkeylist) {
+                     push (@$altmemberlist, $self->redis->get($aline) );
+                     }
+
+                 my $altmemberlistdump = to_json($altmemberlist);
+                 $self->app->log->info("DEBUG: altmemberlist: $altmemberlistdump"); 
 
         # 配列で１ページ分を送る。
-             my $memberlist_json = to_json( { from => $sid, type => "reslist", reslist => $memberlist } );   
+             my $memberlist_json = to_json( { from => $sid, type => "reslist", reslist => $altmemberlist } );   
  
                  $self->app->log->debug("DEBUG: memberlist: $memberlist_json ");
 
@@ -155,20 +172,23 @@ my $recvlist;
         # roomからエントリー削除
             if ($jsonobj->{bye}){
                    # LISTから削除
-                   $self->redis->lrem($chatroomname,'1',$entry_json);
+                   $self->redis->del("LIST$chatroomname$sid");
 
                    # リスナー登録の解除 
-                   $self->redis->unsubscribe($recvlist, sub {
+                   $self->redis->unsubscribe(\@recvlist, sub {
                        my ($redis, $err) = @_;
                           $self->app->log->debug("DEBUG: unsbscribe $username ");
                           return;
                        });
+                   $self->redis->expire($sid => 3600 );
+                   $self->redis->expire($chatroomname => 3600 );
                  return;
                } # {bye}
 
                  # チャットルーム全体に送信
                        my $jsontxt = to_json($jsonobj);
                        $self->redis->publish( "$chatroomname" , $jsontxt);
+                       $self->redis->expire( $chatroomname => 3600 );
                        $self->app->log->debug("DEBUG: publish: $username :  $chatroomname : $jsontxt");
 
                 }); # onmessageのはず。。。
@@ -178,15 +198,20 @@ my $recvlist;
                my ($self, $msg) = @_;
 
             # pubsubのunsubscribe
-               $self->redis->unsubscribe($recvlist, sub {
+               $self->redis->unsubscribe(\@recvlist, sub {
                    my ($redis, $err) = @_;
 
                       return;
                    });
-            # LIST登録の解除 
-            $self->redis->lrem($chatroomname,'1', $entry_json);
+               $self->redis->expire( $sid => 1);
+               $self->redis->expire( $chatroomname => 1);
+               $self->redis->expire( "LIST$chatroomname$sid" => 1);
 
-               $self->app->log->debug('Client disconnected');
+            # LIST登録の解除 
+      #      my $delres = $self->redis->del("LIST$chatroomname$sid");
+      #      $self->app->log->info("DEBUG: delres: $delres");
+
+               $self->app->log->info('Client disconnected');
                delete $clients->{$id};
 
         });  # onfinish...
@@ -206,13 +231,158 @@ my $recvlist;
                     return;
                  });  # redis on message
 
-        $self->redis->subscribe($recvlist, sub {
+        $self->redis->subscribe(\@recvlist, sub {
                  my ($redis, $err) = @_;
                        #     return $redis->publish('errmsg' => $err) if $err;
-                       return $redis->incr($recvlist);
+                       return $redis->incr(@recvlist);
                  });
+        $self->redis->expire( @recvlist => 3600 );
 
 #  $self->render(msg => '');
 }
+
+sub webpubsub {
+    my $self = shift;
+    # websocket,redisでのpubsub、手続きを簡便に処理する。
+    # JSONを受け取って、fromを付けてpubsubで送信する。
+    # sendtoが在ると個別送信としてpubsubで送信する
+    # entryが来ると共有pubsubとして利用する
+
+    #cookieからsid取得 認証を経由している前提
+    my $sid = $self->cookie('site1');
+       $self->app->log->debug("DEBUG: SID: $sid");
+    my $uid = $self->stash("uid");
+    my $username = $self->stash('username');
+    my $icon = $self->stash('icon');
+    my $icon_url = $self->stash('icon_url');
+       $icon_url = "/imgcomm?oid=$icon" if (! defined $icon_url);
+
+    my $recvlist = $sid; #初期値は自分だけでクローズさせる
+
+    #websocket 確認
+       $self->app->log->debug(sprintf 'Client connected: %s', $self->tx->connection);
+
+    # WebSocket接続維持設定
+       my $stream = Mojo::IOLoop->stream($self->tx->connection);
+          $stream->timeout(90);
+        ##  $self->inactivity_timeout(500);
+
+    # on message・・・・・・・
+       $self->on(message => sub {
+                  my ($self, $msg) = @_;
+                   # on messageはブラウザからのみ 他のユーザからはredis経由になる
+
+                   # $msgはJSONキャラを想定
+                   my $jsonobj = from_json($msg);
+
+                  # fromとしてsidを付加
+                      $jsonobj->{from} = $sid;
+ 
+                  # entry pubsubの設定
+                  if ( $jsonobj->{entry} ) {
+
+                      $recvlist = $jsonobj->{entry};
+                      $self->redis->subscribe($recvlist, sub {
+                                 my ($redis, $err) = @_;
+                                     return $redis->incr($recvlist);
+                            });
+
+                      my $entry = { connid => $sid, username => $username, icon_url => $icon_url };
+
+                      my $entry_json = to_json($entry);
+
+                      #list用キーの設定
+                      $self->redis->set("ENTRY$recvlist$sid" => $entry_json);
+                      $self->redis->expire( "ENTRY$recvlist$sid" => 300 );
+
+                      $self->app->log->debug("DEBUG: $username entry finish.");
+
+                     return; 
+                     }
+
+                   #エントリーメンバーを送信コマンドの受信 自分宛て
+                   if ($jsonobj->{getlist}){
+ 
+                      my $altmemberlist = [];
+
+                      my $roomkeylist = $self->redis->keys("ENTRY$recvlist*");
+                      my $roomkeylistdump = to_json($roomkeylist);
+                         $self->app->log->debug("DEBUG: roomkeylist: $roomkeylistdump");
+
+                      foreach my $aline (@$roomkeylist) {
+                             push (@$altmemberlist, $self->redis->get($aline) );
+                         }
+
+                      my $altmemberlistdump = to_json($altmemberlist);
+                         $self->app->log->debug("DEBUG: altmemberlist: $altmemberlistdump"); 
+
+                      # 配列で１ページ分を送る。
+                      my $memberlist_json = to_json( { from => $sid, type => "reslist", reslist => $altmemberlist } );   
+ 
+                         $self->app->log->debug("DEBUG: memberlist: $memberlist_json ");
+
+                         $self->tx->send($memberlist_json);
+
+                         return;
+                        } 
+
+                  # sendtoが含まれる場合
+                  if ($jsonobj->{sendto}){
+                     #個別送信が含まれる場合、単独送信
+
+                     my $jsontxt = to_json($jsonobj);
+                     
+                     $self->redis->publish( $jsonobj->{sendto} , $jsontxt);
+                     $self->redis->expire( $jsonobj->{sendto} => 300 );
+                     $self->app->log->debug("DEBUG: sendto: $jsonobj->{sendto} ");
+  
+                     return;  # スルーすると全体通信になってしまう。
+                     } 
+
+                  # グループ内通信
+                     my $jsontext = to_json($jsonobj);
+                     $self->redis->publish( $recvlist , $jsontext); #websocketで受信したら、redisに送信する
+                     $self->redis->expire( $recvlist => 300 );
+                     $self->app->log->debug("DEBUG: publish: $username :  $recvlist : $jsontext");
+
+                }); # onmessageのはず。。。
+
+    # on finish・・・・・・・
+         $self->on(finish => sub{
+               my ($self, $msg) = @_;
+
+                   # redisのエントリーを削除
+                   $self->redis->del($sid);
+                   $self->redis->del("ENTRY$recvlist$sid");
+                   $self->redis->del($recvlist);
+
+         return;
+        });  # onfinish...
+
+    #redis receve
+         $self->redis->on(message => sub {
+                my ($redis,$mess,$channel) = @_;
+
+                $self->tx->send($mess); # redisは受信したらwebsocketで送信
+          });  # redis on message
+
+        # グループ送信用
+        $self->redis->subscribe($recvlist, sub {
+                 my ($redis, $err) = @_;
+                       return $redis->incr($recvlist);
+                 });
+        $self->redis->expire( $recvlist => 300 );
+
+        #個別送信用
+        $self->redis->subscribe($sid, sub {
+                 my ($redis, $err) = @_;
+                       return $redis->incr($sid);
+                 });
+        $self->redis->expire( $sid => 300 );
+
+#    $self->render(); 
+}
+
+
 
 1;

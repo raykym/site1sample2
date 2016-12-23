@@ -10,9 +10,9 @@
         <h2><%= $msg %></h2>
         <a href="/walkworld/view" class="ui-btn" data-transition="flip" rel="external">散歩World</a>
         <a href="/testhtml/rewrite_walkgame.html" class="ui-btn" data-transition="flip" rel="external">散歩ゲーム</a>
-%#        <a href="/menu/chatopen" class="ui-btn" data-transition="flip" rel="external">オープンチャット</a>
+        <a href="/menu/chatopen" class="ui-btn" data-transition="flip" rel="external">オープンチャット</a>
   %#      <a href="/menu/chatroom" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">チャット(websocket test)</a>
-        <a href="/menu/chatroomdb" class="ui-btn" data-transition="flip" rel="external">チャット(mongoDB base)</a>
+%#        <a href="/menu/chatroomdb" class="ui-btn" data-transition="flip" rel="external">チャット(mongoDB base)</a>
 %#        <a href="/menu/chatroompg" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">チャット(mongoDB base pubsub)</a>
 %#        <p>WebRTCはスマホでは受信出来ない場合があります。テザリングして別の端末からなら可能です。</p>
 %#        <a href="/webrtc/test-sdi-2-sig.html" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">WebRTC(テストサンプル)</a>

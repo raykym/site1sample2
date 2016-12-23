@@ -120,8 +120,8 @@ sub echo {
      Mojo::IOLoop::Delay->new->steps(
           sub {
               my $delay = shift;
-                 # とりあえず、GPSが１０秒で来るはずなのでdelayを行う(chromebookでは失敗するケースがある、、、)  
-                 Mojo::IOLoop->timer( 10 => $delay->begin );
+                 # とりあえず、GPSが30秒で来るはずなのでdelayを行う(chromebookでは失敗するケースがある、、、)  
+                 Mojo::IOLoop->timer( 30 => $delay->begin );
                  $self->app->log->debug("DEBUG: $username delay ON");
               },
           sub {
@@ -242,6 +242,7 @@ sub echo {
                       
                    # 書き込み通知
                    $self->redis->publish( $chatname , $chatjson );
+                   $self->redis->expire( $chatname => 3600 );
                    $self->app->log->debug("DEBUG: $username publish WALKCHAT");
 
               #     $clients->{$id}->send($chatjson);  #無くても自分で受信して動作出来る。$userobjを判定しなければ。。。
@@ -449,6 +450,7 @@ sub echo {
                       $self->app->log->debug("DEBUG: $username redis recv");
                       return $redis->incr("WALKCHAT");
                    });
+     $self->redis->expire( $chatname => 3600 );
 
 #  my $stream = Mojo::IOLoop->stream($clients->{$id}->connection);
 #        $stream->timeout(0);  # no timeout!
@@ -486,6 +488,13 @@ sub supervise {
    my $self = shift;
 
    $self->render(msg_w => '');
+}
+
+sub overviewWW {
+    my $self = shift;
+    # TOP表示用にsuperviseのコピー
+
+    $self->render(msg_w => '');
 }
 
 # supervise websocket
@@ -536,8 +545,8 @@ sub echo3 {
 
            if ( defined($jsonobj->{username})) {
 
-# usernamから3000件ほど検索して返す "upointlist"
-              my $unamegetlist = $timelinelog->find({ "name" => $jsonobj->{username} })->sort({ "_id" => -1 })->limit(3000);
+# usernamから1000件ほど検索して返す "upointlist"
+              my $unamegetlist = $timelinelog->find({ "name" => $jsonobj->{username} })->sort({ "_id" => -1 })->limit(1000);
               my @unamepointlist = $unamegetlist->all;
               my $listhash = { 'upointlist' => \@unamepointlist };
               my $jsontext = to_json($listhash);

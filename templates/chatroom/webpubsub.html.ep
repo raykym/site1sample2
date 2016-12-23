@@ -1,0 +1,85 @@
+% layout 'mobidef2';
+% title 'pubsub TEST';
+%# TEST webpubsub 
+<script type="text/javascript">
+
+ // checkuserのstashでサーバから送られる _はNPC用
+ username = "<%= $username %>";
+ _username_ = "<%= $username %>";
+ uid = "<%= $uid %>";
+ _uid_ = "<%= $uid %>";
+ iconurl = "<%= $icon_url %>";
+ iconurl = iconurl + "&resize=1";
+        if ( iconurl == "" ) {
+           var icon = "<%= $icon %>";
+               iconurl = "/imgcomm?oid=" + icon + "&resize=1";
+           }
+
+
+    var ws = null;
+    ws = new WebSocket('wss://westwind.iobb.net/wsocket/webpubsub');
+
+    var socket_wait = null;
+
+    ws.onopen = function(){
+        console.log('Connection opened');
+
+    // test send message!!!!! 10sec send message
+        socket_wait = setInterval(function (){
+            var dummsg = {"test":username};
+            ws.send(JSON.stringify(dummsg));
+            console.log("socket wait sending!");
+           }, 10000);
+    };
+
+    ws.onclose = function(){
+        console.log("Close");
+        window.clearInterval(socket_wait); 
+    };
+
+    ws.onerror = function(){
+       alert("please Reload, Reconnect websocket!");
+    };
+
+    ws.onmessage = function(msg){
+                var evt = JSON.parse(msg.data);
+                console.log(JSON.stringify(evt));
+
+                $("#userlist").append("<li>" + evt.message + "|" + evt.test + "</li>");
+
+                if ( evt.test == "dummy" ) {
+                   return;
+                   }
+
+                // 折り返し個別送信
+                if ( evt.test != username ) {                
+                   var resdummy = {"testres" : uid , "sendto" : evt.from, "message" : "responce|"+evt.test , "test": "dummy" };
+                   ws.send(JSON.stringify(resdummy));
+                   console.log("responce sending....!");
+                   }
+
+    }; // onmessage
+
+ %# room名入力を受けるための処理
+$(document).on('pageshow',function () {
+
+      $('#roomname').focus();
+
+      $('#roomname').keydown(function (e) {
+        if (e.keyCode == 13 && $('#roomname').val()) {
+            var chars = $('#roomname').val();
+            var entryevt = {'entry' : chars };
+            ws.send(JSON.stringify(entryevt));
+            console.log("key Down echo");
+            }
+       });
+}); // pageshow
+
+</script>
+
+
+<div data-role="page" style="background: #80aa55">
+TEST PAGE
+<p><input type="text" id="roomname" placeholder="room..."></p>
+<ul id="userlist" data-role="listview" data-inset="true"></ul>
+</div>

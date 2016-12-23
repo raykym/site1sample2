@@ -5,7 +5,6 @@ use Mojolicious::Plugin::OAuth2;
 use MongoDB;
 use Mojo::Redis2;
 
-
 sub startup {
   my $self = shift;
 
@@ -14,7 +13,7 @@ sub startup {
                        listen => ['http://*:3800'],
                        accepts => 100,
                        clients => 1,
-                       workers => 100,
+                       workers => 110,
                        proxy => 1,
                        });
 
@@ -92,7 +91,8 @@ sub startup {
 #  $bridge->websocket('/roomentrycheck')->to(controller => 'Chatroom', action => 'roomentrycheck');
   $bridge->websocket('/roomentrylist')->to(controller => 'Chatroom', action => 'roomentrylist');
   $bridge->websocket('/wsocket/signaling')->to(controller => 'Webroom', action => 'signaling');
-#  $bridge->websocket('/echopubsub')->to(controller => 'Chatroom', action => 'echopubsub');
+  $bridge->websocket('/wsocket/webpubsub')->to(controller => 'Webroom', action => 'webpubsub');
+  $bridge->websocket('/echopubsub')->to(controller => 'Chatroom', action => 'echopubsub');
 #  $bridge->websocket('/webnotice')->to(controller => 'Webnotice', action => 'webnotice');
 #  $bridge->websocket('/menu/rec-timeline/record')->to(controller => 'Timeline',action => 'record');
 #  $r->websocket('/menu/rec-timeline/chrome')->to(controller => 'Timeline',action => 'chrome');
@@ -152,10 +152,11 @@ sub startup {
 #  $bridge->get('/webrtcx4')->to('chatroom#webrtcx4'); # 未完
 #  $bridge->get('/webrtcx2')->to('chatroom#webrtcx2');
   $bridge->get('/voicechat')->to('chatroom#voicechat');
-#  $bridge->get('/videochat')->to('chatroom#videochat');
+  $bridge->get('/videochat')->to('chatroom#videochat');
   $bridge->get('/voicechat2')->to('chatroom#voicechat2');
+  $bridge->get('/voicechat2n')->to('chatroom#voicechat2n');
   $bridge->get('/videochat2')->to('chatroom#videochat2');
-#  $bridge->get('/menu/chatopen')->to('chatroom#chatopen');
+  $bridge->get('/menu/chatopen')->to('chatroom#chatopen');
 #  $bridge->get('/voicechatspot')->to('chatroom#voicechatspot'); # 未完
 #  $bridge->get('/videochat2pc')->to('chatroom#videochat2pc');
 
@@ -164,11 +165,15 @@ sub startup {
 #  $bridge->get('/menu/rec-timeline')->to('timeline#view');
 #  $bridge->get('/menu/maptimeline')->to('timeline#mapview');
 
+  $bridge->get('/test/webpubsub')->to('chatroom#webpubsub');
+
   $bridge->get('/walkworld/view')->to('walkworld#view');
   $bridge->get('/walkworld/pointget')->to('walkworld#pointget');
   $bridge->get('/walkworld/supervise')->to('walkworld#supervise');
 
-  $r->any('/walkworld/rcvpush')->to(controller => 'Walkworld', action => 'rcvpush');
+  $r->get('/walkworld/overviewWW')->to('walkworld#overviewWW');
+
+#  $r->any('/walkworld/rcvpush')->to(controller => 'Walkworld', action => 'rcvpush');
 
   $r->any('*')->to('Top#unknown'); # 未定義のパスは全てunknown画面へ
 }

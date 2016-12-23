@@ -1,4 +1,4 @@
-% layout 'mobidefopenchat';
+% layout 'mobidef2';
 % title 'Open Chat';
 
 <script type="text/javascript">
@@ -9,7 +9,8 @@ $(document).on('pageshow',function () {
   var ws = null;
 
 function wsopen() {
-  var ws = new WebSocket('wss://westwind.iobb.net/echopubsub');
+   var ws = new WebSocket('wss://westwind.iobb.net/echopubsub');
+
   return ws;
 }
   ws = wsopen();
@@ -35,7 +36,7 @@ function wsopen() {
    $("#output").prepend("<li><button><img src='" + res.icon_url + "' width='50' height='50'>[" + res.username + "] " + "[" + res.hms + "] " + res.text + "</button></li>");
 
  %#      console.log("msg:" + res);
- %#      console.log("icon_url:" + res.icon_url);
+       console.log("icon_url:" + res.icon_url);
  %#      console.log("username:" + res.username);
  %#      console.log("hms:" + res.hms);
  %#      console.log("text:" + res.text);

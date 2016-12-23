@@ -118,7 +118,7 @@
         return room;
       }
     }
-    return "signal_tbl";  //signalingのデフォルト値をここで指定、空白でも大丈夫>なんだけど・・・
+    return "_signal";  //signalingのデフォルト値をここで指定、空白でも大丈夫>なんだけど・・・
   }
 
 %# 除外してみる  }); // pageshowの終わり

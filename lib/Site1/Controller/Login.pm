@@ -135,8 +135,10 @@ sub usercheck {
         return;
       }
 
+    my $userredisid = "SID$sid";
+
     # redisバイパスチェック
-    my $userredis = $self->redis->get($sid);
+    my $userredis = $self->redis->get($userredisid);
 
     if (defined $userredis) {
 
@@ -261,8 +263,8 @@ sub usercheck {
     my $jsonobj = { email => $email, username => $username, uid => $uid, icon => $icon, icon_url => $icon_url };
     my $jsontext = to_json($jsonobj);
 
-       $self->redis->set($sid => $jsontext);
-       $self->redis->expire( $sid => 3600);
+       $self->redis->set($userredisid => $jsontext);
+       $self->redis->expire( $userredisid => 3600);
 
 
   # 変数の解放

@@ -5,7 +5,7 @@
   <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
   <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
   <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
-  <script type="text/javascript" src="https://maps.google.com/maps/api/js?sensor=true_or_false"></script>
+  <script type="text/javascript" src="https://maps.google.com/maps/api/js?key=AIzaSyBtLOrp4b2x0j71FcDb1Vn9topnZPTNtaM"></script>
   <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 
 <script type="text/javascript">
@@ -22,6 +22,7 @@
  geo_dist = null;
  eneMoveID = null;
  MakerToggle = false;
+ N0r = 0;
 
  gamestat = { "sinario" : 0,   
               "user" : { "damage" : 0 },
@@ -183,7 +184,7 @@ function deviceorientationHandler(event) {
     $('#event_y').text(event.gamma);
   // Z軸
      // trunsrate RightRound
-     N0r = 360 - event.alpha;
+    N0r = 360 - event.alpha;
     $('#event_z').text(N0r);
 
     if ((N0r > alpha_shl-20) && ( N0r < alpha_shl+20 )) {

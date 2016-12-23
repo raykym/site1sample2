@@ -14,13 +14,14 @@
 
  N0r = 0; // 方角
 
- SinarioInterval = 1000;  // シナリオループの間隔
+ SencerInterval = 1000;  // シナリオループの間隔
 
  map = null ;
  mapoptions = null;
  mapobj = null;
  makerobj = new google.maps.Marker();
  makerobjects = [];
+ MakerToggle = false;
 
  geo_dist = []; //UIDと距離のリスト
  tar_get = [];
@@ -30,12 +31,15 @@
 
  SencerToggle = false;
 
+ setEnmyPos = 0; // enemy set counter
+
  // checkuserのstashでサーバから送られる _はNPC用
  username = "<%= $username %>"; 
  _username_ = "<%= $username %>"; 
  uid = "<%= $uid %>"; 
  _uid_ = "<%= $uid %>"; 
  iconurl = "<%= $icon_url %>";
+ iconurl = iconurl + "&resize=1";
         if ( iconurl == "" ) {
            var icon = "<%= $icon %>";
                iconurl = "/imgcomm?oid=" + icon + "&resize=1";  
@@ -43,13 +47,18 @@
 
 // main?
 $(function(){
-   // AccelID = window.setInterval(AccelSence,SinarioInterval);
-   // JairoID = window.setInterval(JairoSence,SinarioInterval);
+   SenceToggleID = window.setInterval(Senceronoff,SencerInterval);
    // 常時起動ならタイマーは不要
-   AccelSence();
-   JairoSence();
+   //AccelSence();
+   //JairoSence();
+   loopstart();   // gps auto start.....
   });
     wsCall(dumCall);
+
+function Senceronoff() {
+    AccelSence();
+    JairoSence();
+}
 
 
 // map toggle
@@ -66,8 +75,10 @@ function Mtoggle(){
 function Stoggle(){
     if (SencerToggle) {
         SencerToggle = false;
+        $('#output_jai').text("sleep");
     } else {
         SencerToggle = true;
+        $('#output_jai').text("drive");
     }
     console.log("DEBUG: SencerToggle: " + SencerToggle );
 }
@@ -168,8 +179,10 @@ function geoDistance(lat1, lng1, lat2, lng2, precision) {
 // 加速度センサー
 function AccelSence(){
     if (SencerToggle) {    window.addEventListener("devicemotion", devicemotionHandler);
+                           $('#output_jai').text("drive");
           } else {
                            window.removeEventListener("devicemotion", devicemotionHandler);
+                           $('#output_jai').text("sleep");
           }
 }
 
@@ -242,6 +255,7 @@ function deviceorientationHandler(event) {
   // Z軸
      // trunsrate RightRound
      N0r = 360 - event.alpha;
+
  //   $('#event_z').text(N0r);
 
  //   $('#output_d').text("alpha:(-360) " + Math.ceil(N0r));
@@ -401,6 +415,7 @@ function getPosition(aCallback){
                                title: "mySelf"
                           });
                    console.log("Marker:" + position.coords.latitude + "|" + position.coords.longitude);
+
           aCallback(); // for promise
     }  // successCallback
 
@@ -448,7 +463,7 @@ function centerMap(alat,alng) {
 function wsCall(aCallback){
       ws = new WebSocket('wss://westwind.iobb.net/walkworld');
       console.log("DEBUG: ws Connect!!");
-      $('#output').text("接続中");
+      $('#output').text("online");
       aCallback();
   } 
 
@@ -458,7 +473,7 @@ function wsCall(aCallback){
 
     ws.onclose = function(){
         console.log("Close: WebSocket Close");
-        $('#output').text("再接続");
+        $('#output').text("reConnect");
         wsCall(dumCall);
     }
 
@@ -551,6 +566,16 @@ function wsCall(aCallback){
                   return element.userid != uid; 
                           });
 
+        // 自動エネミーセットチェック
+        if ( plist_nonself.length == 0 ) {
+           setEnmyPos++;
+           console.log("DEBUG: setEnmyPos:" + setEnmyPos);
+           if ( setEnmyPos > 2 ){
+              enmset();
+              console.log("DEBUG: Enemy Set.....");
+              }
+           } else { setEnmyPos = 0; }
+
           // 60秒前の時刻を取得して
 //          var leaptime = Date.now();
 //              leaptime = leaptime - 60000;
@@ -615,7 +640,7 @@ function wsCall(aCallback){
 
 
         // 警告バイブレーション　50m以下
-             tar_buz = geo_dist.filter ( function ( element, index ){
+             var tar_buz = geo_dist.filter ( function ( element, index ){
                  return (element.distance < 50);
                  });
 
@@ -627,6 +652,26 @@ function wsCall(aCallback){
                     // tar_buz.length=0
                     if ( SencerToggle ) { Stoggle();}
                }
+
+          // 近距離の方角を抽出
+             var min_dist = Math.min.apply(null, geo_dist.map(function(o){return o.distance}));
+
+             var distobj = geo_dist.filter( function (element, index) {
+                     return (element.distance == min_dist);
+                 });
+
+             console.log("DEBUG: direction:" + distobj[0].direction );
+             console.log("DEBUG: N0r:" + N0r );
+             console.log("DEBUG: arrow:" + (N0r - distobj[0].direction) );
+          %#   console.log("DEBUG: userid:" + distobj[0].userid );
+          %#   console.log("DEBUG: distance:" + distobj[0].distance );
+          %#   console.log("DEBUG: distobj:" + JSON.stringify(distobj) );
+
+          // 方向指示表示
+             $("#arrow").css({
+                 "transform" : "rotate(" + (N0r - distobj[0].direction) + "deg)",
+                })
+
 
         // plist,uplist共通処理
         var pcount = plist_nd.length;
@@ -649,20 +694,25 @@ function wsCall(aCallback){
         } //for i
                console.log("DEBUG: setMaker After " + makerobjects.length);
 
+             // inVisible Maker Ghosts
+             makerobjects.filter( function(element,index){
+                     element.setVisible(MakerToggle);
+             });
+
    } // ws.onmessage -----------------------------------------------------------------
 
 // key input
 function keyInput(){
 
-           pointget();
+           pointget();  
            AccelSence();  // on/offが切り替わる
            JairoSence();
 
            console.log("DEBUG: keyInput call. push or Interval");
            if (ws.readyState == 1 ) {
-                $('#output').text("接続中");
+                $('#output').text("online");
                } else {
-                $('#output').text("切断中");
+                $('#output').text("offline");
            }
        var fetchgps = new Promise(function(resolv){
                gpsset(resolv);
@@ -699,19 +749,16 @@ function record()
     <div data-role="navbar">
         <ul>
            <li><a href=#map data-ajax="false">MAP</a></li>
-           <li><a href=#voice data-ajax="false">VoiceChat</a></li>
+           <li><a href=#voice data-ajax="false">Voice in Chat</a></li>
         </ul>
     </div> <!-- navbar -->
     <div id="map">
 <!-- panel left -->
   <div data-role="panel" id="panel" data-display="overlay" style="background-color: #aac78d;">
-    <button type="button" class="ui-btn " onclick="gpsset(dumCall);">GPS Enable</button>
-    <button type="button" class="ui-btn " onclick="enmset();">Ghost Set</button>
+%#    <button type="button" class="ui-btn " onclick="gpsset(dumCall);">GPS Enable</button>
+%#    <button type="button" class="ui-btn " onclick="enmset();">Ghost Set</button>
+    <button type="button" class="ui-btn " onclick="Mtoggle();">Maker Toggle</button>
     <button type="button" class="ui-btn " onclick="hangUp();" style="background-color: #ff1111; color: #ffff00">Restart</button>
-  </div>
-<!-- panel right -->
-  <div data-role="panel" id="r_panel" data-display="overlay" data-position="right" style="background-color: #aac78d;">
-    <p>討伐数：<a id="user_points"></a></p>
     <button type="button" class="ui-btn " onClick="hitEmure();">HIT Emurator Support</button>
    <!-- chatScreen -->
     <div style="overflow: scroll; width: 250px; height: 400px; border: 1px solid">
@@ -720,16 +767,22 @@ function record()
         <ul id="output_chat" data-role="listview" data-inset="true"></ul>
     </div>
   </div>
+<!-- panel right -->
+  <div data-role="panel" id="r_panel" data-display="overlay" data-position="right" style="background-color: #aac78d;">
+    <p>討伐数：<a id="user_points"></a></p>
+  </div>
   <div id="gmap" class="mapbase" style="width : 100%; height : 360px;"></div>
   <div class="ui-grid-a">
     <div class="ui-block-a"><div class="ui-bar"  style="hight: 60px"><button type="button" class="ui-btn " onClick="keyInput();" style="background-color: #aac78d; font-size: x-small;"><img id="arrow" class="arrow" src="/img/cyrclearrow_mos.png" width="45" hight="45"/><BR>GPS</button></div></div>
-    <div class="ui-block-b"><div class="ui-bar"  style="hight: 60px"><p>Dist：<a id="output_d"></a></p><p>接続判定：<a id="output"></a></p></div></div>
+%#    <div class="ui-block-b"><div class="ui-bar"  style="hight: 60px"><p>Dist：<a id="output_d"></a></p><p>接続判定：<a id="output"></a></p></div></div>
+    <div class="ui-block-b"><div class="ui-bar"  style="hight: 60px"></p><p>Network：<a id="output"></a></p><p>JAIRO：<a id="output_jai"></a></p></div></div>
   </div> <!-- ui-grid-a -->
   <div style="border: 1px solid; background-color: #bbd89e;"><text id="textarea"></text></div>
 
   </div> <!-- #map -->
   <div id="voice">
-    <object type="text/html" data="https://westwind.iobb.net/voicechat2" style="width : 100%; height : 360px;" alt="objectに対応していない場合はこれが表示される">
+    <object type="text/html" data="https://westwind.iobb.net/voicechat2n" style="width : 100%; height : 360px;" alt="objectに対応していない場合はこれが表示される">
+  %#  <object type="text/html" data="https://westwind.iobb.net/menu/chatopen" style="width : 100%; height : 360px;" alt="objectに対応していない場合はこれが表示される">
     </object>
   </div>
 </div> <!-- tabs -->

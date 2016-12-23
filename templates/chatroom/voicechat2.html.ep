@@ -402,6 +402,11 @@ function call(){
     clearInterval(socket_wait);
     sokect_wait = null;
     console.log("socket_wait STOP.");
+
+    %# リストからエントリーを削除
+ %#   var byemess = {"bye":"dummy"};
+ %#   ws.send(JSON.stringify(byemess));
+ %#   console.log("byemess:" + JSON.stringify(byemess));
 }
 
 function sendcall(){
@@ -410,6 +415,7 @@ function sendcall(){
     var typecall = JSON.stringify({"type":"call"});
     console.log("typecall:" + typecall);
     ws.send(typecall);
+
 }
 
   function sendSDP(sdp) {

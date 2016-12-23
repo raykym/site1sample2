@@ -17,7 +17,7 @@
                     <button data-role="none" type="submit"><img src="/imgcomm?oid=<%= $icon %>" width="100" hight="100"></button>
         %        }
         %       } else {
-            <button data-role="none" type="submit"><img src="<%= $icon_url %>"></button>
+            <button data-role="none" type="submit"><img src="<%= $icon_url %>" width="100" hight="100"></button>
         %       }
             </form>
          </div>

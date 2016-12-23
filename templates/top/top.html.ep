@@ -16,15 +16,16 @@
             </div>
         </div>
     </div><!-- /header -->
-
     <div role="main" class="ui-content" id='border'>
         <h2><%= $msg %></h2>
 %#        <p style="color: #ff0000">知り合い向けのWebRTCシグナリングサーバです。関係者以外立ち入り禁止</p>
 %#        <a href="/menu" style="text-decoration: none; background: #222222; color: #ffffff;" class="ui-btn ui-corner-all ui-btn-inline" data-transition="flip">メニュー</a>
         <a href="/walkworld/view" class="ui-btn" data-transition="flip" rel="external">散歩World</a>
-        <a href="/testhtml/rewrite_walkgame.html" class="ui-btn" data-transition="flip" rel="external">散歩ゲーム</a>
+        <a href="/testhtml/rewrite_walkgame.html" class="ui-btn" data-transition="flip" rel="external">散歩ゲーム(プロトタイプチュートリアル)</a>
         <a href="/menu" class="ui-btn" data-transition="flip" rel="external">メニュー</a>
     </div><!-- /content -->
+
+          <object type="text/html" data="https://westwind.iobb.net/walkworld/overviewWW" style="width : 100%; height : 400px;" alt="objectに対応していない場合はこれが表示される">
 
     <div data-role="footer" style="background: #aac78d;" data-theme="b">
         <div>
