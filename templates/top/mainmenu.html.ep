@@ -9,7 +9,7 @@
         <p>このサイトは、サイト構築の習作として構築しています。文言やイメージなど統一性もありませんが、機能を追加しながら実験する為のサイトです。</p>
         <h2><%= $msg %></h2>
         <a href="/walkworld/view" class="ui-btn" data-transition="flip" rel="external">散歩World</a>
-        <a href="/testhtml/rewrite_walkgame.html" class="ui-btn" data-transition="flip" rel="external">散歩ゲーム</a>
+%#        <a href="/testhtml/rewrite_walkgame.html" class="ui-btn" data-transition="flip" rel="external">散歩ゲーム</a>
         <a href="/menu/chatopen" class="ui-btn" data-transition="flip" rel="external">オープンチャット</a>
   %#      <a href="/menu/chatroom" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">チャット(websocket test)</a>
 %#        <a href="/menu/chatroomdb" class="ui-btn" data-transition="flip" rel="external">チャット(mongoDB base)</a>

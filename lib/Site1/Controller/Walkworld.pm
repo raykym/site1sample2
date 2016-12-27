@@ -13,6 +13,7 @@ use Math::Trig qw(great_circle_distance rad2deg deg2rad pi);
 # 独自パスを指定して自前モジュールを利用
 use lib '/home/debian/perlwork/mojowork/server/site1/lib/Site1';
 use Inputchk;
+use Sessionid;
 
 # This action will render a template
 sub view {
@@ -111,11 +112,6 @@ sub echo {
 
     my $userobj;  #接続しているuserの位置情報
 
-    # 接続時点での末尾を返す  chatではmongodbを使わなくなったのでコメントした
- #   my $last = $walkchatcoll->find_one();
- #   my $lid = $last->{_id};
- #      $lid = 0 if ( !defined $lid);
-
     # GPS情報が来るまでdelayする
      Mojo::IOLoop::Delay->new->steps(
           sub {
@@ -146,10 +142,6 @@ sub echo {
               $clients->{$id}->send({json => $line });
         }
 
-        # 初期値で値が取れない場合の対応  chatではmongodbを使わなくなったのでコメントした
-        #    if ($#allcursole > 0){
-        #        $lid = $allcursole[$#allcursole]->{_id};  # 最後のidを更新
-        #        }
            $self->app->log->debug("DEBUG: $username delay BLOCK END!");
            $delay_once = 'false';
            } # delay block
@@ -163,7 +155,7 @@ sub echo {
 
            my $jsonobj = from_json($msg);
 
-           # chatデータの判定用データ 
+           # chatデータの判定用データ Makerでも利用
            $userobj = clone($jsonobj) if ( $jsonobj->{userid} eq $userid ); 
 
        #walkchat処理
@@ -245,45 +237,6 @@ sub echo {
                    $self->redis->expire( $chatname => 3600 );
                    $self->app->log->debug("DEBUG: $username publish WALKCHAT");
 
-              #     $clients->{$id}->send($chatjson);  #無くても自分で受信して動作出来る。$userobjを判定しなければ。。。
-
-              #     if ($lid eq "" ){
-              #                      $last = $walkchatcoll->find_one();
-              #                      $lid = $last->{_id};
-              #                   }
-
-            #Chat用送信
-            #MongoDBからリストを受けて、送信 (更新を検知して検索する仕掛けが必要,負荷が高くなるため)
-          #            $loopid = Mojo::IOLoop->recurring(
-          #             1 => sub {
-          #                    # mongo3.2用 チャットの文を6000ｍ以内に限る
-          #                      my $walkchat_cursole = $walkchatcoll->query({ geometry => {
-          #                                              '$nearSphere' => {
-          #                                              '$geometry' => {
-          #                                               type => "point",
-          #                                                   "coordinates" => [ $chatevt->{loc}->{lng} , $chatevt->{loc}->{lat} ]},
-          #                                              '$minDistance' => 0,
-          #                                              '$maxDistance' => 6000
-          #                            }},
-          #                        })->sort({_id => 1});
-          #
-          #                   my @alldata = $walkchat_cursole->all;
-          #                  
-          #                   # 新しく追加された分を仕分ける
-          #                   my @gt_lid;
-          #                   foreach my $line (@alldata){
-          #                                      push(@gt_lid,$line) if ($line->{_id} gt $lid);
-          #                                    }   
-          #
-          #                      if ( @gt_lid ){
-          #                          $clients->{$id}->send({json => @gt_lid });
-          #                          $lid = $gt_lid[$#gt_lid]->{_id};
-          #                         }
-          #                      undef @alldata;
-          #                      undef @gt_lid;
-
-          # IOLOOP comment       }) unless ( $username =~ /npcuser/ || $username =~ /searchnpc/); #IOLoop
-
            return;
            } #chat
 
@@ -317,6 +270,20 @@ sub echo {
                       return;
 
               } # if $jsonobj->to
+
+          # putmaker処理 redisへマーカーをセット
+            if ( defined $jsonobj->{putmaker}) {
+              # maker固有のuidを設定
+              my $makeruid = Sessionid->new($userid)->uid;
+              my $makerobj = $jsonobj->{putmaker};
+                 $makerobj->{userid} = $makeruid;
+                 $makerobj = { %$makerobj,ttl => DateTime->now() };
+              my $makerobj_json = to_json($makerobj);
+                 $self->redis->set("Maker$makeruid" => $makerobj_json);
+                 $self->redis->expire("Maker$makeruid" => 1800);
+
+              return;
+            } #putmaker
 
        # 以下、map系のメッセージ処理
            # TTLレコードを追加する。
@@ -379,6 +346,27 @@ sub echo {
 
           #    $self->app->log->debug("DEBUG: GEO points send###################");
 
+       #makerをredisから抽出して、距離を算出してリストに加える。
+
+             my $makerkeylist = $self->redis->keys("Maker*");
+             my $makerlist = [];
+
+             foreach my $aline (@$makerkeylist) {
+                       my $makerpoint = from_json($self->redis->get($aline));
+
+                      # radianに変換
+                      my @s_p = NESW($userobj->{loc}->{lng}, $userobj->{loc}->{lat});
+                      my @t_p = NESW($makerpoint->{loc}->{lng}, $makerpoint->{loc}->{lat});
+                      my $t_dist = great_circle_distance(@s_p,@t_p,6378140);
+                       
+                      if ( $t_dist < 6000) {
+                       push (@$makerlist, $makerpoint );
+                       }
+                   }
+
+               # makerとメンバーリストを結合する
+                 push @pointlist,@$makerlist;
+
                #    my @pointlist = $geo_points_cursole->all;
                    my $listhash = { 'pointlist' => \@pointlist };
                    my $jsontext = to_json($listhash); 
@@ -419,6 +407,8 @@ sub echo {
      #   if ( ! defined $clients->{$id}){ $pubsub->unlisten( $userid => $cb); }
   });
 
+sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
+
 #redis receve
      $self->redis->on(message => sub {
                   my ($redis,$mess,$channel) = @_;
@@ -429,7 +419,6 @@ sub echo {
                       my $messobj = from_json($mess);
 
                       # radianに変換
-                      sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
                       my @s_p = NESW($userobj->{loc}->{lng}, $userobj->{loc}->{lat});
                       my @t_p = NESW($messobj->{loc}->{lng}, $messobj->{loc}->{lat});
                       my $t_dist = great_circle_distance(@s_p,@t_p,6378140);

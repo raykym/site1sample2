@@ -562,8 +562,16 @@ function wsCall(aCallback){
                   return element.userid != uid; 
                           });
 
+        // サーバで重複排除したので、単純にコピーのみに表示用
+        var plist_nd = JSON.parse(JSON.stringify(plist_nonself));
+
+        // Makerを除外する。
+        var plist_nonmaker = plist_nonself.filter( function( element, index) {
+                  return element.name != "maker"; 
+                          });
+
         // 自動エネミーセットチェック
-        if ( plist_nonself.length == 0 ) {
+        if ( plist_nonmaker.length == 0 ) {
            setEnmyPos++;
            console.log("DEBUG: setEnmyPos:" + setEnmyPos);
            if ( setEnmyPos > 2 ){
@@ -591,8 +599,6 @@ function wsCall(aCallback){
 //                               return; }
 //                  });
 
-             // サーバで重複排除したので、単純にコピーのみに
-             var plist_nd = JSON.parse(JSON.stringify(plist_nonself));
 
           // 10秒対応の為に、timeでsortして、サーバ側で対応して不要になった
 //              plist_nonself.sort(function(a,b){
@@ -664,10 +670,12 @@ function wsCall(aCallback){
           %#   console.log("DEBUG: distobj:" + JSON.stringify(distobj) );
 
           // 方向指示表示
-             $("#arrow").css({
-                 "transform" : "rotate(" + (N0r - distobj[0].direction) + "deg)",
-                })
 
+             if ( distobj[0] ){ 
+                 $("#arrow").css({
+                     "transform" : "rotate(" + (N0r - distobj[0].direction) + "deg)",
+                    })
+             }
 
         // plist,uplist共通処理
         var pcount = plist_nd.length;
@@ -732,6 +740,32 @@ function record()
     recognition.start();
 }
 
+function setPointMaker(){
+    // pointMaker set
+    var timerecord = Date.now();
+
+    var maker_stat = {
+                       geometory : {
+                                    type:"point",
+                                    coordinates : [ lng,lat ] 
+                                   },
+                             loc : { 
+                                     lat : lat,
+                                     lng : lng
+                                             },
+                          name : "maker",
+                          userid : "",
+                          status : "Dummy",
+                          time : timerecord,
+                          icon_url : "/img/lighthouse3.png",
+                     }
+
+    var putmaker = { putmaker : maker_stat};
+
+        ws.send(JSON.stringify(putmaker)); 
+}
+
+
 </script>
 
 <div id="hantei" data-role="page" style="background-color: #aac78d;">
@@ -753,6 +787,7 @@ function record()
   <div data-role="panel" id="panel" data-display="overlay" style="background-color: #aac78d;">
 %#    <button type="button" class="ui-btn " onclick="gpsset(dumCall);">GPS Enable</button>
 %#    <button type="button" class="ui-btn " onclick="enmset();">Ghost Set</button>
+    <button type="button" class="ui-btn " onClick="setPointMaker();">PUT Tower</button>
     <button type="button" class="ui-btn " onclick="Mtoggle();">Maker Toggle</button>
     <button type="button" class="ui-btn " onclick="hangUp();" style="background-color: #ff1111; color: #ffff00">Restart</button>
     <button type="button" class="ui-btn " onClick="hitEmure();">HIT Emurator Support</button>
