@@ -112,6 +112,9 @@ sub echo {
 
     my $userobj;  #接続しているuserの位置情報
 
+    #NPCからのチャットはバイパスする
+      if ( ! ( $username =~ /npcuser/ ) || ( $username =~ /searchnpc/ )) {  
+
     # GPS情報が来るまでdelayする
      Mojo::IOLoop::Delay->new->steps(
           sub {
@@ -147,6 +150,8 @@ sub echo {
            } # delay block
 
         )->wait if ($delay_once);
+
+      } # NPC bipass block
 
   $self->on(message => sub {
         my ($self,$msg) = @_;
@@ -251,6 +256,19 @@ sub echo {
                #WalkWorld.MemberTimeLineに残るデータを削除する。
                $timelinecoll->delete_many({"userid" => "$jsonobj->{to}"}); # mognodb3.2
                $self->app->log->debug("DEBUG: hit delete many execute.");
+
+             #撃墜結果を集計      
+                                          #NPCが接続した状態で、executeしたuidのデータを作成する。 
+               my $executelist = $timelinelog->find({ 'execute' => $jsonobj->{execute}, 'hitname' => {'$exists' => 1} });
+
+               my @execute = $executelist->all;
+               my $pcnt = $#execute + 1;
+
+               $self->redis->set( "GHOSTGET$jsonobj->{execute}" => $pcnt );
+
+               undef @execute;
+               undef $pcnt;
+               undef $jsonobj;
                return;
                }
 
@@ -262,7 +280,11 @@ sub echo {
                       # TTLレコードを追加する。
                       $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
                       $timelinecoll->insert($jsonobj);
-                      $timelinelog->insert($jsonobj);
+                   #   $timelinelog->insert($jsonobj); # hitnameパラメータを記録するのでtoはLOGから除外する。
+                   #chatのpubsubに攻撃シグナルを載せる。即座に通知が出来るはずwebsocketはmapと共通なのでchat項目が無ければスルーされて通知出来るはず。
+                   my $jsonobj_txt = to_json($jsonobj);
+                   $self->redis->publish( $chatname ,$jsonobj_txt );
+                   undef $jsonobj_txt; 
 
                       $self->app->log->debug("DEBUG: execute Command write....");
 
@@ -414,10 +436,15 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
                   my ($redis,$mess,$channel) = @_;
                       $self->app->log->debug("DEBUG: on channel:($username) $mess");
 
-                      if ( defined $userobj ){
-
                       my $messobj = from_json($mess);
 
+                      #攻撃シグナルは優先で送信する。
+                      if ( defined $mess->{to} ) {
+                         $clients->{$id}->send({json => $messobj});
+                         return;
+                      }
+
+                      if ( defined $userobj ){
                       # radianに変換
                       my @s_p = NESW($userobj->{loc}->{lng}, $userobj->{loc}->{lat});
                       my @t_p = NESW($messobj->{loc}->{lng}, $messobj->{loc}->{lat});
@@ -449,15 +476,19 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
 
 sub pointget {
     my $self = shift;
-
+  # mongodbからredisに移行
     my $uid = $self->stash('uid');
-    my $wwlogdb = $self->app->mongoclient->get_database('WalkWorldLOG');
-    my $timelinelog = $wwlogdb->get_collection('MemberTimeLinelog');
+#    my $wwlogdb = $self->app->mongoclient->get_database('WalkWorldLOG');
+#    my $timelinelog = $wwlogdb->get_collection('MemberTimeLinelog');
                                           # executeが自分かつ、hitnameが存在する
-    my $executelist = $timelinelog->find({ 'execute' => $uid, 'hitname' => {'$exists' => 1} });
+#    my $executelist = $timelinelog->find({ 'execute' => $uid, 'hitname' => {'$exists' => 1} });
 
-    my @execute = $executelist->all;
-    my $pcnt = $#execute + 1;
+#    my @execute = $executelist->all;
+#    my $pcnt = $#execute + 1;
+
+    my $pcnt = $self->redis->get("GHOSTGET$uid");
+
+    if ( ! defined $pcnt ) { $pcnt = "Not collect" };
 
     my $resultpoint = { "count" => $pcnt }; 
 
@@ -465,8 +496,8 @@ sub pointget {
    $self->render(json => $resultpoint);
 
    undef $uid;
-   undef $executelist;
-   undef @execute;
+#   undef $executelist;
+#   undef @execute;
    undef $pcnt;
    undef $resultpoint;
 
@@ -508,7 +539,6 @@ sub echo3 {
 #    my $walkchatdrpmsg = $holldb->get_collection('walkchat_dropmsg');
 
     # chat loop
-#    my $loopid;
 
     # 接続時点での末尾を返す  chatではmongodbを使わなくなったのでコメントした
 #    my $last = $walkchatcoll->find_one();

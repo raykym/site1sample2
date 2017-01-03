@@ -182,13 +182,18 @@ function AccelSence(){
           }
 }
 
+// Check Accellarator
+var check_cnt = 0;
+var a;
+
 function devicemotionHandler(event) {
 
-    var a = {
+        a = {
         x : event.acceleration.x,
         y : event.acceleration.y,
         z : event.acceleration.z,
     };
+
 
     if ((a.x > acc_shl)||(a.y > acc_shl)||(a.z > acc_shl)||(a.x < -acc_shl)||(a.y < -acc_shl)||(a.z < -acc_shl)) {
                    onCount++;
@@ -249,8 +254,9 @@ function deviceorientationHandler(event) {
   // Y軸
     $('#event_y').text(event.gamma);
   // Z軸
-     // trunsrate RightRound
-     N0r = 360 - event.alpha;
+     // trunsrate Noth0 and RightRound   default east0 and leftRound becode +90
+     //N0r = (event.alpha * -1 ) + 90;
+     N0r = (event.alpha * -1 ); 
 
  //   $('#event_z').text(N0r);
 
@@ -272,7 +278,8 @@ function direct_distance(){
       //   if (( element.direction < N0r + 20 && element.direction > N0r - 20) && (element.distance < dist_shl)){ 
       //          console.log("DEBUG: " + element.userid + ": " + element.direction + " : " + element.distance );
       //      };
-         return ((element.direction < N0r + 20 || element.direction > N0r - 20 ) && (element.distance < 20));
+      //   return ((element.direction < N0r + 20 || element.direction > N0r - 20 ) && (element.distance < 20));
+         return (element.distance < 20);
          });
  
      if ( tar_get.length != 0 ) {
@@ -480,7 +487,7 @@ function wsCall(aCallback){
 // オンメッセージ処理 --------------------------------------------
     ws.onmessage = function(msg){
         var evt = JSON.parse(msg.data);
-            console.log("evt: msg: " + msg.data ); 
+     //       console.log("evt: msg: " + msg.data ); 
      //       console.log("evt: point: " + JSON.stringify(evt.pointlist));
      //       console.log("evt: chat: " + JSON.stringify(evt.chat));
 
@@ -569,9 +576,13 @@ function wsCall(aCallback){
         var plist_nonmaker = plist_nonself.filter( function( element, index) {
                   return element.name != "maker"; 
                           });
+        // ユーザを除外する（NPC判定）
+        var plist_nonuser = plist_nonmaker.filter( function( element, index) {
+                  return element.category == "NPC";
+                          });
 
         // 自動エネミーセットチェック
-        if ( plist_nonmaker.length == 0 ) {
+        if ( plist_nonuser.length == 0 ) {
            setEnmyPos++;
            console.log("DEBUG: setEnmyPos:" + setEnmyPos);
            if ( setEnmyPos > 2 ){
@@ -662,9 +673,9 @@ function wsCall(aCallback){
                      return (element.distance == min_dist);
                  });
 
-          %#   console.log("DEBUG: direction:" + distobj[0].direction );
-          %#   console.log("DEBUG: N0r:" + N0r );
-          %#   console.log("DEBUG: arrow:" + (N0r - distobj[0].direction) );
+             console.log("DEBUG: direction:" + distobj[0].direction );
+             console.log("DEBUG: N0r:" + N0r );
+             console.log("DEBUG: arrow:" + (distobj[0].direction - N0r) );
           %#   console.log("DEBUG: userid:" + distobj[0].userid );
           %#   console.log("DEBUG: distance:" + distobj[0].distance );
           %#   console.log("DEBUG: distobj:" + JSON.stringify(distobj) );
@@ -673,7 +684,7 @@ function wsCall(aCallback){
 
              if ( distobj[0] ){ 
                  $("#arrow").css({
-                     "transform" : "rotate(" + (N0r - distobj[0].direction) + "deg)",
+                     "transform" : "rotate(" + (distobj[0].direction - N0r) + "deg)",
                     })
              }
 
@@ -682,7 +693,7 @@ function wsCall(aCallback){
 
         for ( var i=0; i < pcount; i++){
            var point = plist_nd[i]; 
-           console.log("DEBUG: point " + JSON.stringify(point));
+        //   console.log("DEBUG: point " + JSON.stringify(point));
            if ( point.name == username ) { 
                                   console.log("DEBUG: Pass this point");
                                   continue;
@@ -711,6 +722,21 @@ function keyInput(){
            pointget();  
            AccelSence();  // on/offが切り替わる
            JairoSence();
+
+           // Accelarator Check
+           if ( a == undefined ) {
+              check_cnt++;
+              if ( check_cnt == 1 ) {
+                  alert("Shake not SUPPORT Device ,USE 'HIT Emurator Support' AND Arrow UP to North");
+              }
+           }
+           else if ( a.x == null ) {
+            //   console.log("DEBUG: a.x: " + a.x + "|" + a.y + "|" + a.z);
+              check_cnt++;
+              if ( check_cnt == 1 ) {
+                  alert("Shake not SUPPORT Device ,USE 'HIT Emurator Support' AND Arrow UP to North");
+              }
+           }
 
            console.log("DEBUG: keyInput call. push or Interval");
            if (ws.readyState == 1 ) {

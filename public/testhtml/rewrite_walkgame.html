@@ -184,7 +184,7 @@ function deviceorientationHandler(event) {
     $('#event_y').text(event.gamma);
   // Z軸
      // trunsrate RightRound
-    N0r = 360 - event.alpha;
+    N0r = (event.alpha * -1) + 90;
     $('#event_z').text(N0r);
 
     if ((N0r > alpha_shl-20) && ( N0r < alpha_shl+20 )) {
