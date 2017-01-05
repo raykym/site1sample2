@@ -645,6 +645,7 @@ function wsCall(aCallback){
           // 距離と方角をチェックしてリスト化
               cp_plist_nd.filter ( function ( element, index ){
                  if ( element.name == username ) { return; }
+                 if ( element.name == "maker" ) { return; }
                  var p_dist = geoDistance( user_stat.loc.lat, user_stat.loc.lng, element.loc.lat, element.loc.lng, 6 );
                  var p_direc = geoDirection ( user_stat.loc.lat, user_stat.loc.lng, element.loc.lat, element.loc.lng);
                  var p_key = { userid : element.userid, distance : p_dist, direction : Math.ceil(p_direc) };

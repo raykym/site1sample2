@@ -112,15 +112,15 @@ sub echo {
 
     my $userobj;  #接続しているuserの位置情報
 
-    #NPCからのチャットはバイパスする
+    #NPCからのチャットはバイパスする mognodb負荷軽減
       if ( ! ( $username =~ /npcuser/ ) || ( $username =~ /searchnpc/ )) {  
 
     # GPS情報が来るまでdelayする
      Mojo::IOLoop::Delay->new->steps(
           sub {
               my $delay = shift;
-                 # とりあえず、GPSが30秒で来るはずなのでdelayを行う(chromebookでは失敗するケースがある、、、)  
-                 Mojo::IOLoop->timer( 30 => $delay->begin );
+                 # とりあえず、GPSが20秒で来るはずなのでdelayを行う(chromebookでは失敗するケースがある、、、)  
+                 Mojo::IOLoop->timer( 20 => $delay->begin );
                  $self->app->log->debug("DEBUG: $username delay ON");
               },
           sub {
@@ -153,6 +153,8 @@ sub echo {
 
       } # NPC bipass block
 
+
+ # on message Websocket
   $self->on(message => sub {
         my ($self,$msg) = @_;
 
@@ -281,7 +283,7 @@ sub echo {
                       $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
                       $timelinecoll->insert($jsonobj);
                    #   $timelinelog->insert($jsonobj); # hitnameパラメータを記録するのでtoはLOGから除外する。
-                   #chatのpubsubに攻撃シグナルを載せる。即座に通知が出来るはずwebsocketはmapと共通なのでchat項目が無ければスルーされて通知出来るはず。
+              #chatのpubsubに攻撃シグナルを載せる。即座に通知が出来るはずwebsocketはmapと共通なのでchat項目が無ければスルーされて通知出来るはず。
                    my $jsonobj_txt = to_json($jsonobj);
                    $self->redis->publish( $chatname ,$jsonobj_txt );
                    undef $jsonobj_txt; 
@@ -327,14 +329,8 @@ sub echo {
                                 return;  # この処理が入るとボットはダウンするので終了する。
                                }
 
-           # 現状の情報を送信  0.0002度で2km程度まで
-   # mongo2.4用
-   #        my $geo_points_cursole = $timelinecoll->query({ "geometry" => { 
-   #                                        '$nearSphere' => [ $jsonobj->{loc}->{lng} , $jsonobj->{loc}->{lat} ], 
-   #                                        '$maxDistance' => 0.002 
-   #                                  }});
-
-   # mongo3.2用 6000m以内のデータを返す
+           # 現状の情報を送信 
+           # mongo3.2用 6000m以内のデータを返す
            my $geo_points_cursole = $timelinecoll->query({ geometry => { 
                                                            '$nearSphere' => {
                                                            '$geometry' => {
@@ -439,10 +435,12 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
                       my $messobj = from_json($mess);
 
                       #攻撃シグナルは優先で送信する。
-                      if ( defined $mess->{to} ) {
-                         $clients->{$id}->send({json => $messobj});
+                      if ( defined $messobj->{to} ) {
+                         $clients->{$id}->send($mess);
                          return;
                       }
+                      
+                      if ( $userobj->{category} eq "NPC" ) { return; } # NPCへはチャットを送信しない
 
                       if ( defined $userobj ){
                       # radianに変換
@@ -452,7 +450,8 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
 
                       if ( $t_dist < 6000 ){
                         if ( defined $clients->{$id} ){ 
-                           $clients->{$id}->send({json => $messobj});
+                           $clients->{$id}->send($mess);
+                           $self->app->log->debug("DEBUG: send websocket:($username) $mess");
                             }
                           }
 
@@ -463,12 +462,16 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
      $self->redis->subscribe($chatname, sub {
                    my ($redis, $err) = @_;
                  #     return $redis->publish( $chatname => $err) if $err;
-                      $self->app->log->debug("DEBUG: $username redis recv");
+                      $self->app->log->debug("DEBUG: $username redis subscribe");
                       return $redis->incr("WALKCHAT");
                    });
      $self->redis->expire( $chatname => 3600 );
 
-#  my $stream = Mojo::IOLoop->stream($clients->{$id}->connection);
+     $self->redis->on(error => sub {
+                   my ($redis,$err) = @_;
+                      $self->app->log->debug("DEBUG: $username redis error: $err");
+                   });
+
 #        $stream->timeout(0);  # no timeout!
         $self->inactivity_timeout(500);
 
