@@ -1,1 +1,93 @@
 
+[Sun Jan  8 10:10:38 2017] [debug] GET "/"
+[Sun Jan  8 10:10:38 2017] [debug] Routing to controller "Site1::Controller::Top" and action "top"
+[Sun Jan  8 10:10:38 2017] [debug] Rendering template "top/top.html.ep"
+[Sun Jan  8 10:10:38 2017] [debug] Rendering template "layouts/mobidef2.html.ep"
+[Sun Jan  8 10:10:38 2017] [debug] 200 OK (0.010055s, 99.453/s)
+[Sun Jan  8 10:10:39 2017] [debug] GET "/"
+[Sun Jan  8 10:10:39 2017] [debug] Routing to controller "Site1::Controller::Top" and action "top"
+[Sun Jan  8 10:10:39 2017] [debug] Rendering cached template "top/top.html.ep"
+[Sun Jan  8 10:10:39 2017] [debug] Rendering cached template "layouts/mobidef2.html.ep"
+[Sun Jan  8 10:10:39 2017] [debug] 200 OK (0.001835s, 544.959/s)
+[Sun Jan  8 10:10:40 2017] [debug] GET "/walkworld/overviewWW"
+[Sun Jan  8 10:10:40 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "overviewWW"
+[Sun Jan  8 10:10:40 2017] [debug] Rendering template "walkworld/overviewWW.html.ep"
+[Sun Jan  8 10:10:40 2017] [debug] Rendering cached template "layouts/mobidef2.html.ep"
+[Sun Jan  8 10:10:40 2017] [debug] 200 OK (0.027935s, 35.797/s)
+[Sun Jan  8 10:10:40 2017] [debug] GET "/walkworldsupv"
+[Sun Jan  8 10:10:40 2017] [debug] Routing to controller "Site1::Controller::Login" and action "usercheck"
+[Sun Jan  8 10:10:40 2017] [debug] Notice: Usercheck ON!
+[Sun Jan  8 10:10:40 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "echo3"
+[Sun Jan  8 10:10:40 2017] [debug] Client connected: Mojo::Transaction::WebSocket=HASH(0x39ed450)
+[Sun Jan  8 10:10:40 2017] [debug] 101 Switching Protocols (0.065973s, 15.158/s)
+[Sun Jan  8 10:10:46 2017] [debug] DEBUG: geo_points: {"pointlist":[]}
+[Sun Jan  8 10:10:52 2017] [debug] DEBUG: geo_points: {"pointlist":[]}
+[Sun Jan  8 10:10:58 2017] [debug] DEBUG: geo_points: {"pointlist":[]}
+[Sun Jan  8 10:11:04 2017] [debug] DEBUG: geo_points: {"pointlist":[]}
+[Sun Jan  8 10:11:10 2017] [debug] DEBUG: geo_points: {"pointlist":[]}
+[Sun Jan  8 10:11:16 2017] [debug] DEBUG: geo_points: {"pointlist":[]}
+[Sun Jan  8 10:11:19 2017] [debug] DEBUG: On finish!!
+[Sun Jan  8 10:11:20 2017] [debug] GET "/walkworldsupv"
+[Sun Jan  8 10:11:20 2017] [debug] Routing to controller "Site1::Controller::Login" and action "usercheck"
+[Sun Jan  8 10:11:20 2017] [debug] Notice: Usercheck ON!
+[Sun Jan  8 10:11:20 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "echo3"
+[Sun Jan  8 10:11:20 2017] [debug] Client connected: Mojo::Transaction::WebSocket=HASH(0x39f21e0)
+[Sun Jan  8 10:11:20 2017] [debug] 101 Switching Protocols (0.078796s, 12.691/s)
+[Sun Jan  8 10:11:22 2017] [debug] DEBUG: geo_points: {"pointlist":[]}
+[Sun Jan  8 10:11:28 2017] [debug] DEBUG: geo_points: {"pointlist":[]}
+[Sun Jan  8 10:11:29 2017] [debug] DEBUG: On finish!!
+[Sun Jan  8 10:11:34 2017] [debug] GET "/walkworldsupv"
+[Sun Jan  8 10:11:34 2017] [debug] Routing to controller "Site1::Controller::Login" and action "usercheck"
+[Sun Jan  8 10:11:34 2017] [debug] Notice: Usercheck ON!
+[Sun Jan  8 10:11:34 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "echo3"
+[Sun Jan  8 10:11:34 2017] [debug] Client connected: Mojo::Transaction::WebSocket=HASH(0x39f21e0)
+[Sun Jan  8 10:11:34 2017] [debug] 101 Switching Protocols (0.072156s, 13.859/s)
+[Sun Jan  8 10:11:39 2017] [debug] DEBUG: On finish!!
+[Sun Jan  8 10:11:40 2017] [debug] GET "/walkworldsupv"
+[Sun Jan  8 10:11:40 2017] [debug] Routing to controller "Site1::Controller::Login" and action "usercheck"
+[Sun Jan  8 10:11:40 2017] [debug] Notice: Usercheck ON!
+[Sun Jan  8 10:11:40 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "echo3"
+[Sun Jan  8 10:11:40 2017] [debug] Client connected: Mojo::Transaction::WebSocket=HASH(0x39f25d0)
+[Sun Jan  8 10:11:40 2017] [debug] 101 Switching Protocols (0.076387s, 13.091/s)
+[Sun Jan  8 10:11:48 2017] [debug] DEBUG: On finish!!
+[Sun Jan  8 10:11:52 2017] [debug] GET "/walkworldsupv"
+[Sun Jan  8 10:11:52 2017] [debug] Routing to controller "Site1::Controller::Login" and action "usercheck"
+[Sun Jan  8 10:11:52 2017] [debug] Notice: Usercheck ON!
+[Sun Jan  8 10:11:52 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "echo3"
+[Sun Jan  8 10:11:52 2017] [debug] Client connected: Mojo::Transaction::WebSocket=HASH(0x39f2120)
+[Sun Jan  8 10:11:52 2017] [debug] 101 Switching Protocols (0.067823s, 14.744/s)
+[Sun Jan  8 10:11:57 2017] [debug] DEBUG: On finish!!
+[Sun Jan  8 10:11:58 2017] [debug] GET "/walkworldsupv"
+[Sun Jan  8 10:11:58 2017] [debug] Routing to controller "Site1::Controller::Login" and action "usercheck"
+[Sun Jan  8 10:11:58 2017] [debug] Notice: Usercheck ON!
+[Sun Jan  8 10:11:58 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "echo3"
+[Sun Jan  8 10:11:58 2017] [debug] Client connected: Mojo::Transaction::WebSocket=HASH(0x39f23b0)
+[Sun Jan  8 10:11:59 2017] [debug] 101 Switching Protocols (0.075443s, 13.255/s)
+[Sun Jan  8 10:12:08 2017] [debug] DEBUG: On finish!!
+[Sun Jan  8 10:12:10 2017] [debug] GET "/walkworldsupv"
+[Sun Jan  8 10:12:10 2017] [debug] Routing to controller "Site1::Controller::Login" and action "usercheck"
+[Sun Jan  8 10:12:10 2017] [debug] Notice: Usercheck ON!
+[Sun Jan  8 10:12:10 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "echo3"
+[Sun Jan  8 10:12:10 2017] [debug] Client connected: Mojo::Transaction::WebSocket=HASH(0x39f2330)
+[Sun Jan  8 10:12:10 2017] [debug] 101 Switching Protocols (0.094366s, 10.597/s)
+[Sun Jan  8 10:12:18 2017] [debug] DEBUG: On finish!!
+[Sun Jan  8 10:12:22 2017] [debug] GET "/walkworldsupv"
+[Sun Jan  8 10:12:22 2017] [debug] Routing to controller "Site1::Controller::Login" and action "usercheck"
+[Sun Jan  8 10:12:22 2017] [debug] Notice: Usercheck ON!
+[Sun Jan  8 10:12:22 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "echo3"
+[Sun Jan  8 10:12:22 2017] [debug] Client connected: Mojo::Transaction::WebSocket=HASH(0x39f2680)
+[Sun Jan  8 10:12:22 2017] [debug] 101 Switching Protocols (0.080036s, 12.494/s)
+[Sun Jan  8 10:12:28 2017] [debug] DEBUG: On finish!!
+[Sun Jan  8 10:12:30 2017] [debug] GET "/walkworldsupv"
+[Sun Jan  8 10:12:30 2017] [debug] Routing to controller "Site1::Controller::Login" and action "usercheck"
+[Sun Jan  8 10:12:30 2017] [debug] Notice: Usercheck ON!
+[Sun Jan  8 10:12:30 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "echo3"
+[Sun Jan  8 10:12:30 2017] [debug] Client connected: Mojo::Transaction::WebSocket=HASH(0x39f2210)
+[Sun Jan  8 10:12:30 2017] [debug] 101 Switching Protocols (0.074186s, 13.480/s)
+[Sun Jan  8 10:12:41 2017] [debug] DEBUG: On finish!!
+[Sun Jan  8 10:12:47 2017] [debug] GET "/walkworldsupv"
+[Sun Jan  8 10:12:47 2017] [debug] Routing to controller "Site1::Controller::Login" and action "usercheck"
+[Sun Jan  8 10:12:47 2017] [debug] Notice: Usercheck ON!
+[Sun Jan  8 10:12:47 2017] [debug] Routing to controller "Site1::Controller::Walkworld" and action "echo3"
+[Sun Jan  8 10:12:47 2017] [debug] Client connected: Mojo::Transaction::WebSocket=HASH(0x47da6b0)
+[Sun Jan  8 10:12:47 2017] [debug] 101 Switching Protocols (0.08236s, 12.142/s)

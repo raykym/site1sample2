@@ -674,9 +674,9 @@ function wsCall(aCallback){
                      return (element.distance == min_dist);
                  });
 
-             console.log("DEBUG: direction:" + distobj[0].direction );
-             console.log("DEBUG: N0r:" + N0r );
-             console.log("DEBUG: arrow:" + (distobj[0].direction - N0r) );
+          %#   console.log("DEBUG: direction:" + distobj[0].direction ); //ghostが居ないとエラーになる
+          %#   console.log("DEBUG: N0r:" + N0r );
+          %#   console.log("DEBUG: arrow:" + (distobj[0].direction - N0r) );
           %#   console.log("DEBUG: userid:" + distobj[0].userid );
           %#   console.log("DEBUG: distance:" + distobj[0].distance );
           %#   console.log("DEBUG: distobj:" + JSON.stringify(distobj) );

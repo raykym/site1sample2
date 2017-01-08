@@ -222,7 +222,7 @@ sub echo {
                   # TTLレコードを追加する。
                   my $ttl = DateTime->now();
 
-                     $msgtxt = decode_utf8($msgtxt);
+              #       $msgtxt = decode_utf8($msgtxt);
 
                      $chatobj = { geometry => $chatevt->{geometry},
                                        loc => $chatevt->{loc},
