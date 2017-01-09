@@ -12,7 +12,7 @@ sub startup {
   $self->config(hypnotoad=>{
                        listen => ['http://*:3800'],
                        accepts => 100,
-                       clients => 2,
+                       clients => 1,
                        workers => 55,
                        proxy => 1,
                        });

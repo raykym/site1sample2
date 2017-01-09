@@ -36,8 +36,9 @@
 
     var startflg = null; //localstream用フラグ
 
-    %# call()でボタンの押し間違いをチェックする
+    %# call()でボタンの押し間違いをチェックする ready判定用だったリストを表示用リストに転用
     var memberlist = new Array;
+    var memlist_diff = new Array;
 
     ws.onmessage = function(msg){
                 var evt = JSON.parse(msg.data);
@@ -48,23 +49,54 @@
 
                   %# 表示用リスト
                 var memlist = evt.reslist;
+
         %#        console.log("memlist:" + memlist);
 
                 %# リスト表示用処理
            if (evt.type === 'reslist'){
 
-                %# リストの場合だけmemberlistを更新する。
-                memberlist = memlist;
+                %# memberlistは差分を追加していく
+                if ( memberlist.length == 0) { 
+                                         memberlist = JSON.parse(JSON.stringify(memlist)); 
+                                         memlist_diff = JSON.parse(JSON.stringify(memlist)); // 初回は全部が差分
+                    } else {
+                        %# memlistからmemberlistとの重複を除外した差分リストを作成 
+
+                           memlist_diff = []; // 差分リストの初期化
+
+                           var tmplist = JSON.parse(JSON.stringify(memberlist)); //copy
+                        %# memberlistとmemlistをマージしたtmplistを作成
+                               memlist.filter(function(e, i){
+                                       tmplist.push(e);
+                                    });
+
+                               console.log("DEBUG: tmplist: " + JSON.stringify(tmplist) );
+
+                         %# 重複を判定しているが、判定されないものだけを差分としてpushで取得している。
+                                tmplist.filter(function(e, i, self) {
+                                          if (self.indexOf(e) !== self.lastIndexOf(e)) return;
+                                          memlist_diff.push(e);  // returnをすり抜けたらpush
+                                    }); 
+
+                        console.log("DEBUG: memlist_diff: " + JSON.stringify(memlist_diff) );
+
+                        %# memberlistにdiffを追加する
+                           memlist_diff.filter(function( element, index ){
+                                    memberlist.push(element);
+                                  });
+                   } // if memberlist.length
 
                   connid = evt.from;   // global定義
         %#        console.log("view connid:" + connid);
         %#        console.log("memlist.length:" + memlist.length);
 
-            //空にする 参加者が追加される度に更新される。
-            $("#userlist").empty();
+            %#空にする 参加者が追加される度に更新される。->消さない
+        %#    $("#userlist").empty();
+                %# 差分だけ画面に追加する    
+                for (var i=0 ; i< memlist_diff.length; i++ ){
 
-                for (i=0; i<memlist.length; i++){
-                    var resline = JSON.parse(memlist[i]);
+                    var resline = memlist_diff[i];
+                        resline = JSON.parse(resline);
 
          %#           console.log("username:" + resline.username);
          %#           console.log("icon_url:" + resline.icon_url);
@@ -74,7 +106,7 @@
          %#           console.log("gpslocation:" + resline.gpslocation);
 
                     $("#userlist").append("<li><button><img src='" + resline.icon_url + "' width='50' height='50'>[" + resline.username + "]<audio id=" + resline.connid +" autoplay controls></audio></button></li>");
-
+                    
                 } // for
 
        %# 最初のメンバーリストが届いた時にローカルストリームをスタートする。
@@ -324,8 +356,8 @@ $(document).on('pageshow',function () {
             %# 画面更新
             member();
       %# 他のメンバーへ画面のリロード指定
-      %#      var reloadmember = {"type":"reloadmember"};
-      %#      ws.send(JSON.stringify(reloadmember));
+            var reloadmember = {"type":"reloadmember"};
+            ws.send(JSON.stringify(reloadmember));
             }
        });
 }); // pageshow
@@ -373,10 +405,10 @@ function call(){
     oncall = true;
     sendcall();
 
-    %# 50秒単位のwait送信を止める
-    clearInterval(socket_wait);
-    sokect_wait = null;
-    console.log("socket_wait STOP.");
+    %# 50秒単位のwait送信を止める ->追加接続を可能にしたので停止しない。
+%#    clearInterval(socket_wait);
+%#    sokect_wait = null;
+%#    console.log("socket_wait STOP.");
 }
 
 function sendcall(){
@@ -522,9 +554,8 @@ function getRoomName() { // たとえば、 URLに  ?roomname=open  とする
                   <h4>使い方</h4>
                      <ul data-role="listview">
                         <li style="color: #0000ff">１．共通のroom名を入力してエンター押してください。</li>
-                        <li style="color: #0000ff">２. 全員がそろったら、connectボタンを押して通話状態を確認して下さい。</li>
+                        <li style="color: #0000ff">２. 相手のアイコンが表示されたら、connectボタンを押して通話状態を確認して下さい。</li>
                         <li style="color: #ff0000">３．hungUpで終了して下さい。</li>
-                        <li style="color: #0000ff">＊connect後に参加者が居ると通話が切断されます。HungUpからもう一度roomエントリーをして下さい。</li>
                      </ul>
                  </div>
                </div>

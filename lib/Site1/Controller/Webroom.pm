@@ -257,7 +257,7 @@ sub webpubsub {
     my $icon_url = $self->stash('icon_url');
        $icon_url = "/imgcomm?oid=$icon" if (! defined $icon_url);
 
-    my $recvlist = $sid; #初期値は自分だけでクローズさせる
+    my $recvlist = '';
 
     #websocket 確認
        $self->app->log->debug(sprintf 'Client connected: %s', $self->tx->connection);
