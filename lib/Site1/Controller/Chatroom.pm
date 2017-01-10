@@ -830,4 +830,11 @@ sub voicechat2n {
     $self->render(msg_w => '');
 }
 
+sub videochat2n {
+    my $self = shift;
+    # webroom.pmへの対応用ページ
+
+    $self->render(msg_w => '');
+}
+
 1;

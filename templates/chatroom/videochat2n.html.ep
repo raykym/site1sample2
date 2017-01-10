@@ -1,8 +1,14 @@
 % layout 'mobidef2';
-% title 'Voice Chat REmake';
+% title 'Video Chat2 Remake';
 <script type="text/javascript">
 
  if (! navigator.webkitGetUserMedia) {  alert("Not Supported!!!"); }
+
+   %# カメラ切り替えボタンをクリックイベント
+    function changecam() {
+        console.log("clieck button-----------------");
+        switchcam();
+     }
 
     // websocket
     var socketReady = false;
@@ -16,11 +22,11 @@
         console.log('Connection opened');
         socketReady = true;
 
- %#   socket_wait = setInterval(function (){
- %#      var dummsg = {"dummy":"dummy"};
- %#      ws.send(JSON.stringify(dummsg)); 
- %#      console.log("socket wait sending!");
- %#       }, 50000);
+%#    socket_wait = setInterval(function (){
+%#       var dummsg = {"dummy":"dummy"};
+%#       ws.send(JSON.stringify(dummsg)); 
+%#       console.log("socket wait sending!");
+%#        }, 50000);
     };
 
     ws.onclose = function(){
@@ -37,31 +43,32 @@
 
     var startflg = null; //localstream用フラグ
 
-    %# call()でボタンの押し間違いをチェックする ready判定用だったリストを表示用リストに転用
+    %# call()でボタンの押し間違いをチェックする
     var memberlist = new Array;
     var memlist_diff = new Array;
 
     ws.onmessage = function(msg){
                 var evt = JSON.parse(msg.data);
-                console.log(JSON.stringify(evt));
+        %#        console.log(JSON.stringify(evt));
         %#        console.log("evt.from:" + evt.from);
-        %#        console.log("evt.type:" + evt.type);
+                console.log("evt.type:" + evt.type);
         %#        console.log("evt.reslist:" + evt.reslist);
 
                   %# 表示用リスト
                 var memlist = evt.reslist;
-
         %#        console.log("memlist:" + memlist);
+              
+
 
                 %# リスト表示用処理
            if (evt.type === 'reslist'){
 
                 %# memberlistは差分を追加していく
-                if ( memberlist.length == 0) { 
-                                         memberlist = JSON.parse(JSON.stringify(memlist)); 
+                if ( memberlist.length == 0) {
+                                         memberlist = JSON.parse(JSON.stringify(memlist));
                                          memlist_diff = JSON.parse(JSON.stringify(memlist)); // 初回は全部が差分
                     } else {
-                        %# memlistからmemberlistとの重複を除外した差分リストを作成 
+                        %# memlistからmemberlistとの重複を除外した差分リストを作成
 
                            memlist_diff = []; // 差分リストの初期化
 
@@ -77,7 +84,7 @@
                                 tmplist.filter(function(e, i, self) {
                                           if (self.indexOf(e) !== self.lastIndexOf(e)) return;
                                           memlist_diff.push(e);  // returnをすり抜けたらpush
-                                    }); 
+                                    });
 
                         console.log("DEBUG: memlist_diff: " + JSON.stringify(memlist_diff) );
 
@@ -87,40 +94,65 @@
                                   });
                    } // if memberlist.length
 
+                %# メンバー全員のreadyをチェックでstartmediaを実行する。
+         %#       var memcnt = memberlist.length;
+         %#       console.log("memcnt:" + memcnt);
+         %#       var discnt = 0;
+         %#       for (i=0; i<memcnt; i++){
+         %#           var resline = JSON.parse(memberlist[i]);
+         %#           if ( resline.ready == '1' ) { discnt++ };
+         %#           };  // for
+         %#        if (discnt === memcnt){
+         %#            var vstart = JSON.stringify({"type":"startmedia"});
+         %#            console.log("startmedia:" + vstart);
+         %#            ws.send(vstart);
+         %#            };
+
                   connid = evt.from;   // global定義
         %#        console.log("view connid:" + connid);
         %#        console.log("memlist.length:" + memlist.length);
 
-                %# 差分だけ画面に追加する    
-                for (var i=0 ; i< memlist_diff.length; i++ ){
+        %#    //空にする 参加者が追加される度に更新される。
+        %#    $("#userlist").empty();
 
-                    var resline = memlist_diff[i];
-                        resline = JSON.parse(resline);
+                for (i=0; i<memlist_diff.length; i++){
+                    var resline = JSON.parse(memlist_diff[i]);
 
          %#           console.log("username:" + resline.username);
          %#           console.log("icon_url:" + resline.icon_url);
          %#           console.log("ready:" + resline.ready);
          %#           console.log("sessionid:" + resline.sessionid);
          %#           console.log("connid:" + resline.connid);
-         %#           console.log("gpslocation:" + resline.gpslocation);
 
-                    $("#userlist").append("<li><button><img src='" + resline.icon_url + "' width='50' height='50'>[" + resline.username + "]<audio id=" + resline.connid +" autoplay controls></audio></button></li>");
-                    
+                    $("#userlist").append("<li><button><img src='" + resline.icon_url + "' width='50' height='50'>[" + resline.username + "]<video id=" + resline.connid +" autoplay controls width='350' hight='350'></video></button></li>");
+
                 } // for
 
        %# 最初のメンバーリストが届いた時にローカルストリームをスタートする。
        if ( startflg === null){
             startflg = "started";
-        %# ユーザリストからaudioエレメントを取得する
+        %# ユーザリストからvideoエレメントを取得する
             startvoice();
            }
-             }  // type reslist
+         }  // type reslist
+
+          if (evt.type === "startmedia"){
+             console.log(" StartMedia call");
+
+        %# callのタイミングでその他のメンバーをstartさせる 
+        if ( startflg === null){
+            startflg = "started";
+        %# ユーザリストからvideoエレメントを取得する
+            startvoice();
+           }
+
+              return;
+             }
 
           if (evt.type === "reloadmember"){
               %# 他のメンバーのstandbyを確認する リロードするとローカルストリームが切れるので再スタート
               member();
               startvoice();
-              return;
           }
 
     // SDP,ICE処理 
@@ -158,7 +190,7 @@
             } else if (evt.type === 'candidate') { // **
               console.log('Received ICE candidate...');
               onCandidate(evt);
-            } else if (evt.type === 'bye') { // **
+            } else if (evt.type === 'user dissconnected') { // **
               console.log("disconnected");
               //stop();
               detachvoice(id); // force detach video
@@ -166,13 +198,18 @@
            }
      } //onmessage
 
-// start local audio
+// start local video
+
+
 function startvoice() {
     console.log('Start local Media');
 
-    navigator.webkitGetUserMedia({video: false, audio: true},
+    navigator.webkitGetUserMedia({video: true, audio: true},
+%#    navigator.webkitGetUserMedia({video: {optional: [{sourceId: cameraData[camnum].id }]}, audio: true},
+
     function (stream) { // success
-      localStream = stream;
+      localstream = stream;
+      document.getElementById(connid).src = window.URL.createObjectURL(stream);
     },
     function (error) { // error
       console.error('An error occurred: [CODE ' + error.code + ']');
@@ -192,7 +229,7 @@ function startvoice() {
   }
 
   function isConnectPossible() {
-    var MAX_CONNECTION_COUNT = 25;
+    var MAX_CONNECTION_COUNT = 10;
     if (getConnectionCount() < MAX_CONNECTION_COUNT)
       return true;
     else
@@ -224,9 +261,9 @@ function startvoice() {
   // ---------------------- connection handling -----------------------
   function prepareNewConnection(id) {
     var pc_config = {"iceServers":[]};
-%#    var pc_config = {"iceServers":[{"url":"stun:stun.l.google.com:19302"}]};
+ %#   var pc_config = {"iceServers":[{"url":"stun:stun.l.google.com:19302"}]};
     var pc_config = {"iceServers":[{"url":"stun:instance-1.backbone.site:5349"}]};
-    var pc_config = {"iceServers":[{"url":"turn:instance-1.backbone.site:5349","username":"debiansv","credential":"0xb7b9c73f9cba1d0f51454edec4fac01a"}]};
+    var pc_config = {"iceServers":[{"url":"turn:instance-1.backbone.site:5349","username":"debiansv","credential":"debiansvpass"}]};
     var peer = null;
     try {
       peer = new webkitRTCPeerConnection(pc_config);
@@ -254,7 +291,7 @@ function startvoice() {
     };
 
     console.log('Adding local stream...');
-    peer.addStream(localStream);
+    peer.addStream(localstream);
 
     peer.addEventListener("addstream", onRemoteStreamAdded, false);
     peer.addEventListener("removestream", onRemoteStreamRemoved, false);
@@ -351,13 +388,12 @@ $(document).on('pageshow',function () {
             var chars = $('#roomname').val();
             var entryevt = {'entry' : chars };
             ws.send(JSON.stringify(entryevt));
-            console.log("key Down echo");
+      %#      console.log("key Down echo");
             %# 画面更新
             member();
       %# 他のメンバーへ画面のリロード指定
             var reloadmember = {"type":"reloadmember"};
             ws.send(JSON.stringify(reloadmember));
-            console.log("DEBUG: reloadmember: " + JSON.stringify(reloadmember) );
             }
        });
 }); // pageshow
@@ -378,7 +414,7 @@ function standby(){
 
     var localstream = null;
     var peerConnection = null;
-    var mediaConstraints = {'mandatory': {'OfferToReceiveAudio':true, 'OfferToReceiveVideo':false }};
+    var mediaConstraints = {'mandatory': {'OfferToReceiveAudio':true, 'OfferToReceiveVideo':true }};
 
 var oncall = false;
 
@@ -402,10 +438,15 @@ function call(){
 %#         return;
 %#    }; 
 
+%# ここに必要だけどタイミングが間に合わないのでコメントアウト、イベントループに移動
+%#    var vstart = JSON.stringify({"type":"startmedia"});
+%#    console.log("startmedia:" + vstart);
+%#    ws.send(vstart);
+
     oncall = true;
     sendcall();
 
-    %# 50秒単位のwait送信を止める ->追加接続を可能にしたので停止しない。
+    %# 50秒単位のwait送信を止める
 %#    clearInterval(socket_wait);
 %#    sokect_wait = null;
 %#    console.log("socket_wait STOP.");
@@ -417,7 +458,6 @@ function sendcall(){
     var typecall = JSON.stringify({"type":"call"});
     console.log("typecall:" + typecall);
     ws.send(typecall);
-
 }
 
   function sendSDP(sdp) {
@@ -521,7 +561,6 @@ function member(){
     var getlist = {"getlist":"dummy"};
     ws.send(JSON.stringify(getlist));
     console.log("getlist:" + JSON.stringify(getlist));
-
 }
 
 function hangUp(){
@@ -530,55 +569,41 @@ function hangUp(){
 
 }
 
-function getRoomName() { // たとえば、 URLに  ?roomname=open  とする
-    var url = document.location.href;
-    var args = url.split('?');
-    if (args.length > 1) {
-      var room = args[1];
-      if (room != "") {
-        return room;
-      }
-    }
-    return ; 
-  }
 
 </script>
 
 <div data-role="page" style="background: #80aa55">
-    <div><h3>Voice Chat Remake</h3></div>
+    <div><h3>Video Chat Remake</h3></div>
     <div style="color: #ff0000"><%= $msg_w %></div>
-        <div style="border: 1px solid">
             <p>
                <div data-role="collapsibleset">
                 <div data-role="collapsible">
                   <h4>使い方</h4>
                      <ul data-role="listview">
                         <li style="color: #0000ff">１．共通のroom名を入力してエンター押してください。</li>
-                        <li style="color: #0000ff">２. 相手のアイコンが表示されたら、connectボタンを押して通話状態を確認して下さい。</li>
+                        <li style="color: #0000ff">２．相手のアイコンが表示されたら、connectボタンを押して通話状態を確認して下さい。</li>
                         <li style="color: #ff0000">３．hungUpで終了して下さい。</li>
                      </ul>
                  </div>
                </div>
             </p>
-            <p>room名は大文字小文字、全角半角を区別します。重複しない程度の長さで利用して下さい。</p>
+ %#   <div><button id="chgcam" type="button" onclick="changecam();">Change Camera</button></div>
+        <div style="border: 1px solid">
+            <p>room名はわかりやすく短いものを使いましょう。</p>
             <ul id="userlist" data-role="listview" data-inset="true"></ul>
             <p><input type="text" id="roomname" placeholder="room..."></p>
-    %#        <button type="button" onclick="member();">Memberlist Reload</button>
-    %#        <button type="button" class="ui-btn ui-btn-inline" onclick="standby();">Standby</button>
+  %#          <button type="button" onclick="member();">Memberlist Reload</button>
+  %#          <button type="button" class="ui-btn ui-btn-inline" onclick="standby();">Standby</button>
             <button type="button" class="ui-btn ui-btn-inline" onclick="call();">Connect</button>
             <button type="button" class="ui-btn ui-btn-inline" style="color: #ff0000" onclick="hangUp();">Hang Up</button>
         </div>
         <div>
-           <a href="mailto:?subject=チャットへの招待&body=https://westwind.iobb.net/voicechat2n へアクセスして、room名”　　　”に入って下さい。（アカウント登録が必要になります。もしくはgoogle+アカウントが利用出来ます。）" class="ui-btn">チャットへの招待メール起動</a>
            <ul>
              <li>音声は暗号化の影響でタイムラグが有ります。</li>
              <li>インジケーターは接続を確認できますが、切断されても認識出来ないので、あくまで目安程度です。</li>
-             <li>端末の状態で接続出来ないケースがあります。Google play等でupdateが走ると処理が重くてつながらないケースがあります。</li>
+             <li>端末の状態で接続出来ないケースがあります。Google play等でupdateが走ると処理が重くてつながらないケースがあります。</li1>
            </ul>
         </div>
-
-         <div page-role="panel" id="r_panel" data-display="overlay">
-         </div>
     <div data-role="footer" style="backgroud: #aac78d;">
     <a href="" data-rel="back" class="btn-inline">back</a>
     <a href="/menu" class="btn-inline">メニュー</a>

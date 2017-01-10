@@ -279,6 +279,11 @@ sub webpubsub {
 
                   # fromとしてsidを付加
                       $jsonobj->{from} = $sid;
+
+                  if ( $jsonobj->{dummy} ) {
+                       # dummy pass
+                       return;
+                      }
  
                   # entry pubsubの設定
                   if ( $jsonobj->{entry} ) {

@@ -20,9 +20,9 @@
 %#        <p>OPEN CHANELは接続している人と接続します</p>
 %#        <a href="/voicechat" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">VoiceChat(OPEN CHANNEL)</a>
 %#        <a href="/videochat" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">VideoChat(OPEN CHANNEL)</a>
-        <p>CLOSED CHANELはroom名を知っているメンバーだけで接続出来ます</p>
-        <a href="/voicechat2" class="ui-btn" data-transition="flip" rel="external">VoiceChat(CLOSED CHANNEL)</a>
-        <a href="/videochat2" class="ui-btn" data-transition="flip" rel="external">VideoChat(CLOSED CHANNEL)</a>
+        <p>room名を知っているメンバーだけで接続出来ます</p>
+        <a href="/voicechat2n" class="ui-btn" data-transition="flip" rel="external">VoiceChat</a>
+        <a href="/videochat2n" class="ui-btn" data-transition="flip" rel="external">VideoChat</a>
         <div></div>
 %#        <a href="/menu/mirror" class="ui-btn" data-transition="flip" rel="external">ミラー(Video TEST)</a>
         <a href="/menu/upload" class="ui-btn" data-transition="flip" rel="external">ファイルアップロード</a>

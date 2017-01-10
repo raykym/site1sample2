@@ -155,6 +155,7 @@ sub startup {
   $bridge->get('/voicechat2')->to('chatroom#voicechat2');
   $bridge->get('/voicechat2n')->to('chatroom#voicechat2n');
   $bridge->get('/videochat2')->to('chatroom#videochat2');
+  $bridge->get('/videochat2n')->to('chatroom#videochat2n');
   $bridge->get('/menu/chatopen')->to('chatroom#chatopen');
 #  $bridge->get('/voicechatspot')->to('chatroom#voicechatspot'); # 未完
 #  $bridge->get('/videochat2pc')->to('chatroom#videochat2pc');

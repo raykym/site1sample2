@@ -93,8 +93,8 @@ function record()
     </div>
     <div data-role="panel" id="panel" data-display="overlay">
         <ul id="voicepanel" data-role="listview">
-            <li><a href="/voicechat2" class="ui-btn" rel="external" target="_blank">ボイスチャット(CLOSED CHANNEL)</a></li>
-            <li><a href="/videochat" class="ui-btn" rel="external" target="_blank">ビデオチャット(OPEN CHANNEL)</a></li>
+            <li><a href="/voicechat2n" class="ui-btn" rel="external" target="_blank">ボイスチャット</a></li>
+            <li><a href="/videochat2n" class="ui-btn" rel="external" target="_blank">ビデオチャット</a></li>
         </ul>
     </div>
     <div><h3>Open chat</h3></div>
