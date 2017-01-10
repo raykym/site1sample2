@@ -150,14 +150,14 @@ my @recvlist;
 
                  my $roomkeylist = $self->redis->keys("LIST$chatroomname*");
                  my $roomkeylistdump = to_json($roomkeylist);
-                    $self->app->log->info("DEBUG: roomkeylist: $roomkeylistdump");
+                    $self->app->log->debug("DEBUG: roomkeylist: $roomkeylistdump");
 
                  foreach my $aline (@$roomkeylist) {
                      push (@$altmemberlist, $self->redis->get($aline) );
                      }
 
                  my $altmemberlistdump = to_json($altmemberlist);
-                 $self->app->log->info("DEBUG: altmemberlist: $altmemberlistdump"); 
+                 $self->app->log->debug("DEBUG: altmemberlist: $altmemberlistdump"); 
 
         # 配列で１ページ分を送る。
              my $memberlist_json = to_json( { from => $sid, type => "reslist", reslist => $altmemberlist } );   
@@ -209,9 +209,9 @@ my @recvlist;
 
             # LIST登録の解除 
       #      my $delres = $self->redis->del("LIST$chatroomname$sid");
-      #      $self->app->log->info("DEBUG: delres: $delres");
+      #      $self->app->log->debug("DEBUG: delres: $delres");
 
-               $self->app->log->info('Client disconnected');
+               $self->app->log->debug('Client disconnected');
                delete $clients->{$id};
 
         });  # onfinish...
@@ -264,13 +264,15 @@ sub webpubsub {
 
     # WebSocket接続維持設定
        my $stream = Mojo::IOLoop->stream($self->tx->connection);
-          $stream->timeout(90);
+          $stream->timeout(0);
         ##  $self->inactivity_timeout(500);
 
     # on message・・・・・・・
        $self->on(message => sub {
                   my ($self, $msg) = @_;
                    # on messageはブラウザからのみ 他のユーザからはredis経由になる
+
+                   $self->app->log->debug("DEBUG: $username ws message: $msg ");
 
                    # $msgはJSONキャラを想定
                    my $jsonobj = from_json($msg);
@@ -293,7 +295,7 @@ sub webpubsub {
 
                       #list用キーの設定
                       $self->redis->set("ENTRY$recvlist$sid" => $entry_json);
-                      $self->redis->expire( "ENTRY$recvlist$sid" => 300 );
+                      $self->redis->expire( "ENTRY$recvlist$sid" => 1800 );
 
                       $self->app->log->debug("DEBUG: $username entry finish.");
 
@@ -333,7 +335,7 @@ sub webpubsub {
                      my $jsontxt = to_json($jsonobj);
                      
                      $self->redis->publish( $jsonobj->{sendto} , $jsontxt);
-                     $self->redis->expire( $jsonobj->{sendto} => 300 );
+                     $self->redis->expire( $jsonobj->{sendto} => 1800 );
                      $self->app->log->debug("DEBUG: sendto: $jsonobj->{sendto} ");
   
                      return;  # スルーすると全体通信になってしまう。
@@ -342,7 +344,7 @@ sub webpubsub {
                   # グループ内通信
                      my $jsontext = to_json($jsonobj);
                      $self->redis->publish( $recvlist , $jsontext); #websocketで受信したら、redisに送信する
-                     $self->redis->expire( $recvlist => 300 );
+                     $self->redis->expire( $recvlist => 1800 );
                      $self->app->log->debug("DEBUG: publish: $username :  $recvlist : $jsontext");
 
                 }); # onmessageのはず。。。
@@ -362,7 +364,7 @@ sub webpubsub {
     #redis receve
          $self->redis->on(message => sub {
                 my ($redis,$mess,$channel) = @_;
-
+                $self->app->log->debug("DEBUG: $username redis on message: $channel | $mess ");
                 $self->tx->send($mess); # redisは受信したらwebsocketで送信
           });  # redis on message
 
@@ -371,14 +373,14 @@ sub webpubsub {
                  my ($redis, $err) = @_;
                        return $redis->incr($recvlist);
                  });
-        $self->redis->expire( $recvlist => 300 );
+        $self->redis->expire( $recvlist => 1800 );
 
         #個別送信用
         $self->redis->subscribe($sid, sub {
                  my ($redis, $err) = @_;
                        return $redis->incr($sid);
                  });
-        $self->redis->expire( $sid => 300 );
+        $self->redis->expire( $sid => 1800 );
 
 #    $self->render(); 
 }

@@ -16,16 +16,17 @@
         console.log('Connection opened');
         socketReady = true;
 
-    soket_wait = setInterval(function (){
-       var dummsg = {"dummy":"dummy"};
-       ws.send(JSON.stringify(dummsg)); 
-       console.log("socket wait sending!");
-        }, 50000);
+ %#   socket_wait = setInterval(function (){
+ %#      var dummsg = {"dummy":"dummy"};
+ %#      ws.send(JSON.stringify(dummsg)); 
+ %#      console.log("socket wait sending!");
+ %#       }, 50000);
     };
 
     ws.onclose = function(){
         socketReady = false;
         console.log("Close:" + socketReady);
+        alert("please Reload, Reconnect websocket!"); 
     };
 
     ws.onerror = function(){
@@ -358,6 +359,7 @@ $(document).on('pageshow',function () {
       %# 他のメンバーへ画面のリロード指定
             var reloadmember = {"type":"reloadmember"};
             ws.send(JSON.stringify(reloadmember));
+            console.log("DEBUG: reloadmember: " + JSON.stringify(reloadmember) );
             }
        });
 }); // pageshow
