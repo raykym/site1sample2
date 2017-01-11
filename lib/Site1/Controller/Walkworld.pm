@@ -405,10 +405,7 @@ sub echo {
         delete $clients->{$id};
 
         #redis unsubscribe
-        $self->redis->unsubscribe("$chatname", sub {
-                   my ($redis, $err) = @_;
-                      return;
-                   });
+        $self->redis->unsubscribe("$chatname");
 
         # loopの停止
      #   Mojo::IOLoop->remove($loopid); 

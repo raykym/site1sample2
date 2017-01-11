@@ -175,11 +175,8 @@ my @recvlist;
                    $self->redis->del("LIST$chatroomname$sid");
 
                    # リスナー登録の解除 
-                   $self->redis->unsubscribe(\@recvlist, sub {
-                       my ($redis, $err) = @_;
-                          $self->app->log->debug("DEBUG: unsbscribe $username ");
-                          return;
-                       });
+                   $self->redis->unsubscribe(\@recvlist);
+                   $self->app->log->debug("DEBUG: unsbscribe $username ");
                    $self->redis->expire($sid => 3600 );
                    $self->redis->expire($chatroomname => 3600 );
                  return;
@@ -198,11 +195,7 @@ my @recvlist;
                my ($self, $msg) = @_;
 
             # pubsubのunsubscribe
-               $self->redis->unsubscribe(\@recvlist, sub {
-                   my ($redis, $err) = @_;
-
-                      return;
-                   });
+               $self->redis->unsubscribe(\@recvlist);
                $self->redis->expire( $sid => 1);
                $self->redis->expire( $chatroomname => 1);
                $self->redis->expire( "LIST$chatroomname$sid" => 1);
