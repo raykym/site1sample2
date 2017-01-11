@@ -257,6 +257,9 @@ sub webpubsub {
     my $icon_url = $self->stash('icon_url');
        $icon_url = "/imgcomm?oid=$icon" if (! defined $icon_url);
 
+    #redisをチャットでは別で設定する。 Site1.pmで共有設定をするとセッション数が上がりすぎてダメになる
+    my $redis ||= Mojo::Redis2->new;
+
     my $recvlist = '';
 
     #websocket 確認
@@ -289,7 +292,7 @@ sub webpubsub {
                   if ( $jsonobj->{entry} ) {
 
                       $recvlist = $jsonobj->{entry};
-                      $self->redis->subscribe($recvlist, sub {
+                      $redis->subscribe($recvlist, sub {
                                  my ($redis, $err) = @_;
                                      return $redis->incr($recvlist);
                             });
@@ -299,8 +302,8 @@ sub webpubsub {
                       my $entry_json = to_json($entry);
 
                       #list用キーの設定
-                      $self->redis->set("ENTRY$recvlist$sid" => $entry_json);
-                      $self->redis->expire( "ENTRY$recvlist$sid" => 1800 );
+                      $redis->set("ENTRY$recvlist$sid" => $entry_json);
+                      $redis->expire( "ENTRY$recvlist$sid" => 1800 );
 
                       $self->app->log->debug("DEBUG: $username entry finish.");
 
@@ -312,12 +315,12 @@ sub webpubsub {
  
                       my $altmemberlist = [];
 
-                      my $roomkeylist = $self->redis->keys("ENTRY$recvlist*");
+                      my $roomkeylist = $redis->keys("ENTRY$recvlist*");
                       my $roomkeylistdump = to_json($roomkeylist);
                          $self->app->log->debug("DEBUG: roomkeylist: $roomkeylistdump");
 
                       foreach my $aline (@$roomkeylist) {
-                             push (@$altmemberlist, $self->redis->get($aline) );
+                             push (@$altmemberlist, $redis->get($aline) );
                          }
 
                       my $altmemberlistdump = to_json($altmemberlist);
@@ -339,8 +342,8 @@ sub webpubsub {
 
                      my $jsontxt = to_json($jsonobj);
                      
-                     $self->redis->publish( $jsonobj->{sendto} , $jsontxt);
-                     $self->redis->expire( $jsonobj->{sendto} => 1800 );
+                     $redis->publish( $jsonobj->{sendto} , $jsontxt);
+                     $redis->expire( $jsonobj->{sendto} => 1800 );
                      $self->app->log->debug("DEBUG: sendto: $jsonobj->{sendto} ");
   
                      return;  # スルーすると全体通信になってしまう。
@@ -348,8 +351,8 @@ sub webpubsub {
 
                   # グループ内通信
                      my $jsontext = to_json($jsonobj);
-                     $self->redis->publish( $recvlist , $jsontext); #websocketで受信したら、redisに送信する
-                     $self->redis->expire( $recvlist => 1800 );
+                     $redis->publish( $recvlist , $jsontext); #websocketで受信したら、redisに送信する
+                     $redis->expire( $recvlist => 1800 );
                      $self->app->log->debug("DEBUG: publish: $username :  $recvlist : $jsontext");
 
                 }); # onmessageのはず。。。
@@ -359,33 +362,33 @@ sub webpubsub {
                my ($self, $msg) = @_;
 
                    # redisのエントリーを削除
-                   $self->redis->del($sid);
-                   $self->redis->del("ENTRY$recvlist$sid");
-                   $self->redis->del($recvlist);
+                   $redis->del($sid);
+                   $redis->del("ENTRY$recvlist$sid");
+                   $redis->del($recvlist);
 
          return;
         });  # onfinish...
 
     #redis receve
-         $self->redis->on(message => sub {
+         $redis->on(message => sub {
                 my ($redis,$mess,$channel) = @_;
                 $self->app->log->debug("DEBUG: $username redis on message: $channel | $mess ");
                 $self->tx->send($mess); # redisは受信したらwebsocketで送信
           });  # redis on message
 
         # グループ送信用
-        $self->redis->subscribe($recvlist, sub {
+        $redis->subscribe($recvlist, sub {
                  my ($redis, $err) = @_;
                        return $redis->incr($recvlist);
                  });
-        $self->redis->expire( $recvlist => 1800 );
+        $redis->expire( $recvlist => 1800 );
 
         #個別送信用
-        $self->redis->subscribe($sid, sub {
+        $redis->subscribe($sid, sub {
                  my ($redis, $err) = @_;
                        return $redis->incr($sid);
                  });
-        $self->redis->expire( $sid => 1800 );
+        $redis->expire( $sid => 1800 );
 
 #    $self->render(); 
 }

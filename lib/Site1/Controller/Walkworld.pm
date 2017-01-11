@@ -472,8 +472,9 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
                       $self->app->log->debug("DEBUG: $username redis error: $err");
                    });
 
-#        $stream->timeout(0);  # no timeout!
-        $self->inactivity_timeout(500);
+      my $stream = Mojo::IOLoop->stream($self->tx->connection);
+         $stream->timeout(0);  # no timeout!
+#        $self->inactivity_timeout(500);
 
 } # echo
 
