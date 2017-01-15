@@ -144,8 +144,8 @@ sub usercheck {
 
              my $userobj = from_json($userredis);
 
-        #     $self->app->log->info("DEBUG: redis: $userredis");
-        #     $self->app->log->info("DEBUG: redis: $userobj->{email}");
+             $self->app->log->info("DEBUG: redis: $userredis");
+             $self->app->log->info("DEBUG: redis: $userobj->{email}");
 
         # $iconを無くす方向で考えていたが、表示で利用していたので削除出来なかった。
             $self->stash( email => $userobj->{email} );
@@ -181,6 +181,10 @@ sub usercheck {
     # $iconが空ならNow printingが設定される。
        if (! defined $icon ) { $icon = 'nowprint';}
        $icon = urlsafe_b64encode($icon) if ( $icon ne "nowprint"); #urlsafe_b64encode
+    my $icon_url ;
+
+
+ if (! defined $username ) {   
 
     # OAuth2の認証確認 ローカル認証で結果が得られない前提で！
     my $ua = Mojo::UserAgent->new;
@@ -189,9 +193,10 @@ sub usercheck {
                 )->res->json if (defined $atoken);
 
     my $text = to_json($value);
-       $self->app->log->debug("DEBUG: value: $text");
+       $self->app->log->info("DEBUG: value: $text");
 
-    if ($text =~ "error") {
+    #結果がエラーならrefresh tokenでaccess tokenを取得
+    if (! defined $value->{displayName}) {
         my $data = $ua->post(
                "https://accounts.google.com/o/oauth2/token" => form => {
                                   refresh_token => $rtoken,
@@ -200,48 +205,63 @@ sub usercheck {
                                   grant_type => "refresh_token",
                                            })->res->json;
                my $new_token = to_json($data);
-               $self->app->log->debug("DEBUG: newtoken: $new_token");
+               $self->app->log->info("DEBUG: newtoken: $new_token");
+
+            # リフレッシュトークンの取得失敗
+               if (( defined $data->{error} ) || ( $new_token == "null" )){
+                   $self->app->log->debug('Notice: refresh token MISS TAKE');
+                   $self->redirect_to('/');
+                   return;
+                  }
 
                   $atoken = $data->{access_token};
-                  $self->app->log->debug("DEBUG: access_token: $atoken");
+                  $self->app->log->debug("DEBUG: new access_token: $atoken");
                
                $sth_atoken_update_sid->execute($atoken,$sid);
-        }
 
-    # 再度atokenを取得
-       $sth_sid_chk->execute($sid) if ($text =~ "error");
-       $get_value = $sth_sid_chk->fetchrow_hashref() if ($text =~ "error");
-       $email = $get_value->{email} if ($text =~ "error");
-       $atoken = $get_value->{atoken} if ($text =~ "error");
-       $rtoken = $get_value->{rtoken} if ($text =~ "error");
+    # 再度atokenを取得 DBにatokenが格納されたか確認する
+       $sth_sid_chk->execute($sid);
+       $get_value = $sth_sid_chk->fetchrow_hashref();
+       $email = $get_value->{email};
+       $atoken = $get_value->{atoken};
+       $rtoken = $get_value->{rtoken};
 
      #$atokenが有れば再度取得し直す
      $value = $ua->get(
                 "https://www.googleapis.com/plus/v1/people/me?access_token=$atoken"
                 )->res->json if ( defined $atoken );
-       #self->app->log->debug("DEBUG: new atoken: $atoken");
+       #self->app->log->info("DEBUG: new atoken: $atoken");
 
        $text = to_json($value);
-       $self->app->log->debug("DEBUG: new value: $text"); 
+       $self->app->log->info("DEBUG: new value: $text"); 
+
+        } # defined displayName
 
     my $valueobj = encode_json($value);
        $email = $value->{emails}->[0]->{value} unless $email; # 無ければ
        $self->app->log->debug("DEBUG: email: $email");
        $username = $value->{displayName} unless $username; #無ければ
        $self->app->log->debug("DEBUG: displayName: $username");
-    my $icon_url =$value->{image}->{url};
+       $icon_url =$value->{image}->{url};
        $self->app->log->debug("DEBUG: icon_url: $icon_url") if (defined $icon_url);
     my $gpid = $value->{id};
 
        $uid = Sessionid->new($gpid)->guid unless $uid; #無ければ
-       $self->app->log->debug("DEBUG: guid: $uid");
+       $self->app->log->info("DEBUG: guid: $uid");
 
     # email,usernameが取得できない場合 ->リダイレクト
     if ( ! defined $email and ! defined $username ) {
-        $self->app->log->debug('Notice: email or username not get Error!');
+        $self->app->log->info('Notice: email or username not get Error!');
         $self->redirect_to('/');
         return;
        }
+
+    undef $text;
+    undef $value;
+    undef $valueobj;
+
+  } # if defined $username
+
 
     #日付update
     my $dumytime = time;
@@ -262,6 +282,7 @@ sub usercheck {
 
     my $jsonobj = { email => $email, username => $username, uid => $uid, icon => $icon, icon_url => $icon_url };
     my $jsontext = to_json($jsonobj);
+    $self->app->log->info("DEBUG: set redis: $jsontext ");
 
        $self->redis->set($userredisid => $jsontext);
        $self->redis->expire( $userredisid => 3600);
@@ -277,9 +298,6 @@ sub usercheck {
   undef $dumytime;
   undef $checkdate;
   undef $uid;
-  undef $text;
-  undef $value;
-  undef $valueobj;
   undef $get_value;
   undef $jsonobj;
   undef $jsontext;

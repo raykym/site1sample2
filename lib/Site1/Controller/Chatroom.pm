@@ -749,7 +749,7 @@ sub echopubsub {
        $self->redis->on(message => sub {
                 my ($redis,$mess,$channel) = @_;
                 
-                if ( $channel == $recvlist ){
+                if ( $channel eq $recvlist ){
                     $self->tx->send($mess); # redisは受信したらwebsocketで送信
                 }
           });  # redis on message
@@ -796,6 +796,8 @@ sub echopubsub {
                    $resmsg = to_json($resmsg);
                # 書き込みを通知
                $self->redis->publish($recvlist => $resmsg);
+
+               $self->redis->unsubscribe('$recvlist');
 
               });
 

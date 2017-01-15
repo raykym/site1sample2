@@ -12,7 +12,7 @@ sub startup {
   $self->config(hypnotoad=>{
                        listen => ['http://*:3800'],
                        accepts => 100,
-                       clients => 1,
+                       clients => 2,
                        workers => 55,
                        proxy => 1,
                        });
@@ -98,7 +98,7 @@ sub startup {
 #  $r->websocket('/menu/rec-timeline/chrome')->to(controller => 'Timeline',action => 'chrome');
 #  $bridge->websocket('/menu/maptimeline/echo')->to(controller => 'Timeline',action => 'echo');
   $bridge->websocket('/walkworld')->to(controller => 'Walkworld',action => 'echo');
-  $bridge->websocket('/walkworldsupv')->to(controller => 'Walkworld',action => 'echo3');
+  $r->websocket('/walkworldsupv')->to(controller => 'Walkworld',action => 'echo3');
 
 
   # Normal route to controller

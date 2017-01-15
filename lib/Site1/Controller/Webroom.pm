@@ -229,7 +229,7 @@ my @recvlist;
                        #     return $redis->publish('errmsg' => $err) if $err;
                        return $redis->incr(@recvlist);
                  });
-        $self->redis->expire( @recvlist => 3600 );
+        $self->redis->expire( \@recvlist => 3600 );
 
 #  $self->render(msg => '');
 }
@@ -254,6 +254,7 @@ sub webpubsub {
     my $redis ||= Mojo::Redis2->new;
 
     my $recvlist = '';
+    my @recvArray = ( $sid );
 
     #websocket 確認
        $self->app->log->debug(sprintf 'Client connected: %s', $self->tx->connection);
@@ -285,10 +286,13 @@ sub webpubsub {
                   if ( $jsonobj->{entry} ) {
 
                       $recvlist = $jsonobj->{entry};
-                      $redis->subscribe($recvlist, sub {
+                      push (@recvArray, $recvlist);
+                      $redis->subscribe(\@recvArray, sub {
                                  my ($redis, $err) = @_;
-                                     return $redis->incr($recvlist);
+                                     return $redis->incr(@recvArray);
                             });
+
+                      $redis->expire( \@recvArray => 1800 );
 
                       my $entry = { connid => $sid, username => $username, icon_url => $icon_url };
 
@@ -336,7 +340,7 @@ sub webpubsub {
                      my $jsontxt = to_json($jsonobj);
                      
                      $redis->publish( $jsonobj->{sendto} , $jsontxt);
-                     $redis->expire( $jsonobj->{sendto} => 1800 );
+                  #   $redis->expire( $jsonobj->{sendto} => 1800 );
                      $self->app->log->debug("DEBUG: sendto: $jsonobj->{sendto} ");
   
                      return;  # スルーすると全体通信になってしまう。
@@ -345,7 +349,7 @@ sub webpubsub {
                   # グループ内通信
                      my $jsontext = to_json($jsonobj);
                      $redis->publish( $recvlist , $jsontext); #websocketで受信したら、redisに送信する
-                     $redis->expire( $recvlist => 1800 );
+                  #   $redis->expire( $recvlist => 1800 );
                      $self->app->log->debug("DEBUG: publish: $username :  $recvlist : $jsontext");
 
                 }); # onmessageのはず。。。
@@ -355,9 +359,8 @@ sub webpubsub {
                my ($self, $msg) = @_;
 
                    # redisのエントリーを削除
-                   $redis->del($sid);
+                   $redis->unsubscribe(\@recvArray);
                    $redis->del("ENTRY$recvlist$sid");
-                   $redis->del($recvlist);
 
          return;
         });  # onfinish...
@@ -365,23 +368,27 @@ sub webpubsub {
     #redis receve
          $redis->on(message => sub {
                 my ($redis,$mess,$channel) = @_;
-                $self->app->log->debug("DEBUG: $username redis on message: $channel | $mess ");
-                $self->tx->send($mess); # redisは受信したらwebsocketで送信
+
+                   if (( $channel eq $recvlist ) || ( $channel eq $sid )) {
+                        $self->app->log->debug("DEBUG: $username redis on message: $channel | $mess ");
+                        $self->tx->send($mess); # redisは受信したらwebsocketで送信
+                      }
+
           });  # redis on message
 
-        # グループ送信用
-        $redis->subscribe($recvlist, sub {
+        # redis受信用
+        $redis->subscribe(\@recvArray, sub {
                  my ($redis, $err) = @_;
-                       return $redis->incr($recvlist);
+                       return $redis->incr(@recvArray);
                  });
-        $redis->expire( $recvlist => 1800 );
+        $redis->expire( \@recvArray => 1800 );
 
         #個別送信用
-        $redis->subscribe($sid, sub {
-                 my ($redis, $err) = @_;
-                       return $redis->incr($sid);
-                 });
-        $redis->expire( $sid => 1800 );
+  #      $redis->subscribe($sid, sub {
+  #               my ($redis, $err) = @_;
+  #                     return $redis->incr($sid);
+  #               });
+  #      $redis->expire( $sid => 1800 );
 
 #    $self->render(); 
 }

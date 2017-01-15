@@ -20,7 +20,7 @@
 %#        <p>OPEN CHANELは接続している人と接続します</p>
 %#        <a href="/voicechat" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">VoiceChat(OPEN CHANNEL)</a>
 %#        <a href="/videochat" class="ui-btn ui-btn-inline" data-transition="flip" rel="external">VideoChat(OPEN CHANNEL)</a>
-        <p>room名を知っているメンバーだけで接続出来ます</p>
+%#        <p>room名を知っているメンバーだけで接続出来ます</p>
         <a href="/voicechat2n" class="ui-btn" data-transition="flip" rel="external">VoiceChat</a>
         <a href="/videochat2n" class="ui-btn" data-transition="flip" rel="external">VideoChat</a>
         <div></div>

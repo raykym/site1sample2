@@ -23,10 +23,8 @@
         <a href="/walkworld/view" class="ui-btn" data-transition="flip" rel="external">散歩World</a>
         <a href="/testhtml/rewrite_walkgame.html" class="ui-btn" data-transition="flip" rel="external">散歩ゲーム(プロトタイプチュートリアル)</a>
         <a href="/menu" class="ui-btn" data-transition="flip" rel="external">メニュー</a>
+        <object type="text/html" data="https://westwind.iobb.net/walkworld/overviewWW" style="width : 100%; height : 400px;" alt="objectに対応していない場合はこれが表示される">
     </div><!-- /content -->
-
-          <object type="text/html" data="https://westwind.iobb.net/walkworld/overviewWW" style="width : 100%; height : 400px;" alt="objectに対応していない場合はこれが表示される">
-
     <div data-role="footer" style="background: #aac78d;" data-theme="b">
         <div>
         <h5 style="color: #000000;">このサイトはMojoliciousとJQuery mobileで作成しています。</h5>

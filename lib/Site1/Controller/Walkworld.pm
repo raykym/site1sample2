@@ -104,6 +104,7 @@ sub echo {
        $icon_url = "/imgcomm?oid=$icon" if (! defined $icon_url);
 
     my $chatname = "WALKCHAT";
+    my @chatArray = ( $chatname );
 
     # chat loop
   #  my $loopid;
@@ -283,10 +284,6 @@ sub echo {
                       $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
                       $timelinecoll->insert($jsonobj);
                    #   $timelinelog->insert($jsonobj); # hitnameパラメータを記録するのでtoはLOGから除外する。
-              #chatのpubsubに攻撃シグナルを載せる。即座に通知が出来るはずwebsocketはmapと共通なのでchat項目が無ければスルーされて通知出来るはず。
-                   my $jsonobj_txt = to_json($jsonobj);
-                   $self->redis->publish( $chatname ,$jsonobj_txt );
-                   undef $jsonobj_txt; 
 
                       $self->app->log->debug("DEBUG: execute Command write....");
 
@@ -405,7 +402,7 @@ sub echo {
         delete $clients->{$id};
 
         #redis unsubscribe
-        $self->redis->unsubscribe("$chatname");
+        $self->redis->unsubscribe(\@chatArray);
 
         # loopの停止
      #   Mojo::IOLoop->remove($loopid); 
@@ -428,6 +425,8 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
      $self->redis->on(message => sub {
                   my ($redis,$mess,$channel) = @_;
                       $self->app->log->debug("DEBUG: on channel:($username) $mess");
+
+                      if ( $channel ne $chatname ) { return; } # filter channel
 
                       my $messobj = from_json($mess);
 
@@ -456,13 +455,13 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
                        return;
                   });  # redis on message
 
-     $self->redis->subscribe($chatname, sub {
+     $self->redis->subscribe(\@chatArray, sub {
                    my ($redis, $err) = @_;
                  #     return $redis->publish( $chatname => $err) if $err;
                       $self->app->log->debug("DEBUG: $username redis subscribe");
-                      return $redis->incr("WALKCHAT");
+                      return $redis->incr(@chatArray);
                    });
-     $self->redis->expire( $chatname => 3600 );
+     $self->redis->expire( \@chatArray => 3600 );
 
      $self->redis->on(error => sub {
                    my ($redis,$err) = @_;
@@ -471,7 +470,7 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
 
       my $stream = Mojo::IOLoop->stream($self->tx->connection);
          $stream->timeout(0);  # no timeout!
-#        $self->inactivity_timeout(500);
+         $self->inactivity_timeout(10000);
 
 } # echo
 
@@ -615,8 +614,8 @@ sub echo3 {
         $self->app->log->debug("DEBUG: On finish!!");
     });
 
-#  my $stream = Mojo::IOLoop->stream($self->tx->connection);
-#        $stream->timeout(0);  # no timeout!
+  my $stream = Mojo::IOLoop->stream($self->tx->connection);
+        $stream->timeout(0);  # no timeout!
         $self->inactivity_timeout(1000);
 
 }
