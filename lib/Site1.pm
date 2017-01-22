@@ -57,7 +57,7 @@ sub startup {
 
    # $self->app->redis
    $self->app->helper( redis =>
-        ### sub { shift->stash->{redis} ||= Mojo::Redis2->new;
+        ###sub { shift->stash->{redis} ||= Mojo::Redis2->new;
         sub { state $redis = Mojo::Redis2->new;
          });
 

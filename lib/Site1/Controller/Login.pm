@@ -144,8 +144,8 @@ sub usercheck {
 
              my $userobj = from_json($userredis);
 
-             $self->app->log->info("DEBUG: redis: $userredis");
-             $self->app->log->info("DEBUG: redis: $userobj->{email}");
+             $self->app->log->debug("DEBUG: redis: $userredis");
+             $self->app->log->debug("DEBUG: redis: $userobj->{email}");
 
         # $iconを無くす方向で考えていたが、表示で利用していたので削除出来なかった。
             $self->stash( email => $userobj->{email} );
@@ -207,8 +207,18 @@ sub usercheck {
                my $new_token = to_json($data);
                $self->app->log->info("DEBUG: newtoken: $new_token");
 
+       if ( $data->{token_type} eq "Bearer" ) {
+       #id_tokenでリトライ
+       $value = $ua->get(
+                "https://www.googleapis.com/plus/v1/people/me?access_token=$data->{id_token}"
+                )->res->json if (defined $atoken);
+
+       $text = to_json($value);
+       $self->app->log->info("DEBUG: value 2: $text");
+           } # if token_type
+
             # リフレッシュトークンの取得失敗
-               if (( defined $data->{error} ) || ( $new_token == "null" )){
+               if (( defined $value->{error} ) || ( $new_token == "null" )){
                    $self->app->log->debug('Notice: refresh token MISS TAKE');
                    $self->redirect_to('/');
                    return;
@@ -285,7 +295,7 @@ sub usercheck {
     $self->app->log->info("DEBUG: set redis: $jsontext ");
 
        $self->redis->set($userredisid => $jsontext);
-       $self->redis->expire( $userredisid => 3600);
+       $self->redis->expire( $userredisid => 86400);
 
 
   # 変数の解放

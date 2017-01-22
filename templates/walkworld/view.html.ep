@@ -101,8 +101,8 @@ function hitEmure(){
                    return element.distance <  dist_shl;
                  });
 
-                if (ws.readyState != 1 ) {
-                                 wsCall(dumCall);
+                if (navigator.online == false ) {
+                                 setTimeout("wsCall(dumCall)" , 1000);
                               }  // 再接続用
                 hit_tar.filter( function(element, index){
                    console.log("DEBUG: HIT " + element.userid );
@@ -214,8 +214,8 @@ function devicemotionHandler(event) {
                    return element.distance <  dist_shl; 
                  });
 
-                if (ws.readyState != 1 ) { 
-                                 wsCall(dumCall);
+                if (navigator.online == false ) { 
+                                 setTimeout("wsCall(dumCall)" , 1000);
                               }  // 再接続用
                 hit_tar.filter( function(element, index){
                    console.log("DEBUG: HIT " + element.userid );
@@ -338,7 +338,7 @@ function respointget(data){
 
   // GPS get  aCallback is dummy callback for Promise
 function gpsset(aCallback){
-    if (ws.readyState != 1 ) { wsCall(dumCall) }  // ブラウザがスリープするとws_statが判断しないので、
+    if (navigator.online == false ) {  setTimeout("wsCall(dumCall)" , 1000); }  // ブラウザがスリープするとws_statが判断しないので、
     getPosition(aCallback);
     direct_distance();
     if (! gpssetID) { loopstart(); }  // idがなければ起動
@@ -393,7 +393,9 @@ function getPosition(aCallback){
       //    console.log("user_stat:" + JSON.stringify(user_stat) );
       //    console.log("Send user_stat#######");
 
-          // successCallback事前接続のはず
+          if (navigator.online == false ) {
+                               setTimeout("wsCall(dumCall)" , 1000); 
+                       }  // 再接続用
           ws.send(JSON.stringify(user_stat));
 
       // var bytesArray = new Uint8Array(user_stat);
@@ -477,11 +479,12 @@ function wsCall(aCallback){
     ws.onclose = function(){
         console.log("Close: WebSocket Close");
         $('#output').text("reConnect");
-        wsCall(dumCall);
+        setTimeout("wsCall(dumCall)" , 1000);
     }
 
     ws.onerror = function(){
        alert("please Reload, Reconnect websocket!");
+        $('#output').text("Error....!!");
     }
 
 // オンメッセージ処理 --------------------------------------------
@@ -508,7 +511,7 @@ function wsCall(aCallback){
 
              $('#msg').keydown(function (e) {
                  if (e.keyCode == 13 && $('#msg').val()) {
-                 if (ws.readyState != 1) { wsCall();}
+                 if (navigator.online == false) { setTimeout("wsCall(dumCall)" , 1000);}
                  var chatmsg = { 
                                  chat : $('#msg').val(),
                                  geometry: {
@@ -531,7 +534,7 @@ function wsCall(aCallback){
                 recognition.addEventListener('result', function(event){
                 var text = event.results.item(0).item(0).transcript;
                 $("#msg").val(text);
-                if (ws.readyState != 1) { wsCall();}
+                if (ws.readyState != 1) { setTimeout("wsCall(dumCall)" , 1000);} //remain readyState
                 var chatmsg = { 
                                 chat : $('#msg').val(),
                                 geometry: {
@@ -582,7 +585,7 @@ function wsCall(aCallback){
                           });
 
         // 自動エネミーセットチェック
-        if ( plist_nonuser.length == 0 ) {
+        if ( plist_nonuser.length <= 2 ) {
            setEnmyPos++;
            console.log("DEBUG: setEnmyPos:" + setEnmyPos);
            if ( setEnmyPos > 2 ){
@@ -717,13 +720,12 @@ function wsCall(aCallback){
 
    } // ws.onmessage -----------------------------------------------------------------
 
-
 // key input
 function keyInput(){
 
            pointget();  
-           AccelSence();  // on/offが切り替わる
-           JairoSence();
+      //     AccelSence();  // on/offが切り替わる
+      //     JairoSence();
 
            // Accelarator Check
            if ( a == undefined ) {
@@ -742,11 +744,16 @@ function keyInput(){
               }
            }
 
+           if ( navigator.online == false ) {
+               setTimeout("wsCall(dumCall)" , 1000); 
+              }
+
            console.log("DEBUG: keyInput call. push or Interval");
            if (ws.readyState == 1 ) {
                 $('#output').text("online");
                } else {
-                $('#output').text("offline");
+                $('#output').text("OFFLINE!!!");
+                alert("Reload page!!!!");
            }
        var fetchgps = new Promise(function(resolv){
                gpsset(resolv);
@@ -820,7 +827,6 @@ function setPointMaker(){
     <button type="button" class="ui-btn " onClick="setPointMaker();">PUT Tower</button>
     <button type="button" class="ui-btn " onclick="Mtoggle();">Maker Toggle</button>
     <button type="button" class="ui-btn " onclick="hangUp();" style="background-color: #ff1111; color: #ffff00">Restart</button>
-%#    <button type="button" class="ui-btn " onClick="hitEmure();">HIT Emurator Support</button>
    <!-- chatScreen -->
     <div style="overflow: scroll; width: 250px; height: 400px; border: 1px solid">
         <p><input type="text" id="msg" placeholder="message..."></p>

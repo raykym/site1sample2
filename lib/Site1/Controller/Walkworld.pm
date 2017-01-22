@@ -10,6 +10,7 @@ use Mojo::IOLoop::Delay;
 use Clone qw(clone);
 use Math::Trig qw(great_circle_distance rad2deg deg2rad pi);
 
+
 # 独自パスを指定して自前モジュールを利用
 use lib '/home/debian/perlwork/mojowork/server/site1/lib/Site1';
 use Inputchk;
@@ -76,6 +77,7 @@ sub rcvpush {
        $self->render( text => '', status => '204');
 }
 
+my $stream_io = {};
 
 # WalkWorld websocket endpoint
 sub echo {
@@ -106,10 +108,7 @@ sub echo {
     my $chatname = "WALKCHAT";
     my @chatArray = ( $chatname );
 
-    # chat loop
-  #  my $loopid;
-  
-     my $delay_once = 'true';
+    my $delay_once = 'true';
 
     my $userobj;  #接続しているuserの位置情報
 
@@ -127,14 +126,14 @@ sub echo {
           sub {
               my ($delay, @args) = @_;
 
-                  # mongo3.2用 チャットの文を6000ｍ以内に限る
+                  # mongo3.2用 チャットの文を3000ｍ以内に限る
                     my $walkchat_cursole = $walkchatcoll->query({ geometry => {
                                                         '$nearSphere' => {
                                                         '$geometry' => {
                                                          type => "point",
                                                              "coordinates" => [ $userobj->{loc}->{lng} , $userobj->{loc}->{lat} ]},
                                                         '$minDistance' => 0,
-                                                        '$maxDistance' => 6000
+                                                        '$maxDistance' => 3000
                                       }},
                                   })->sort({_id => -1});
           
@@ -168,6 +167,8 @@ sub echo {
 
        #walkchat処理
            if ( defined $jsonobj->{chat} ){
+
+         #      if ( $userobj->{category} eq "NPC" ) { return; }   #NPC bypass
 
                my  $chatevt = clone($jsonobj);
 
@@ -223,8 +224,6 @@ sub echo {
                   # TTLレコードを追加する。
                   my $ttl = DateTime->now();
 
-              #       $msgtxt = decode_utf8($msgtxt);
-
                      $chatobj = { geometry => $chatevt->{geometry},
                                        loc => $chatevt->{loc},
                                   icon_url => $icon_url,
@@ -238,7 +237,7 @@ sub echo {
                    $walkchatcoll->insert($chatobj);
                    $self->app->log->debug("DEBUG: $username insert chat");
 
-                      my $chatjson = to_json($chatobj);
+                   my $chatjson = to_json($chatobj);
                       
                    # 書き込み通知
                    $self->redis->publish( $chatname , $chatjson );
@@ -254,11 +253,11 @@ sub echo {
            if ( defined $jsonobj->{hitname} ){
         
                $timelinelog->insert($jsonobj);
-               $self->app->log->debug("DEBUG: hitname write");
+               $self->app->log->debug("DEBUG: $username hitname write");
 
                #WalkWorld.MemberTimeLineに残るデータを削除する。
                $timelinecoll->delete_many({"userid" => "$jsonobj->{to}"}); # mognodb3.2
-               $self->app->log->debug("DEBUG: hit delete many execute.");
+               $self->app->log->debug("DEBUG: $username hit delete many execute.");
 
              #撃墜結果を集計      
                                           #NPCが接続した状態で、executeしたuidのデータを作成する。 
@@ -278,14 +277,14 @@ sub echo {
 
       # 攻撃シグナルの送信 toにuserid
            if ( $jsonobj->{to} ) {
-              $self->app->log->debug("DEBUG: Attack send: $msg");
+              $self->app->log->debug("DEBUG: $username Attack send: $msg");
 
                       # TTLレコードを追加する。
                       $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
                       $timelinecoll->insert($jsonobj);
                    #   $timelinelog->insert($jsonobj); # hitnameパラメータを記録するのでtoはLOGから除外する。
 
-                      $self->app->log->debug("DEBUG: execute Command write....");
+                      $self->app->log->debug("DEBUG: $username execute Command write....");
 
                       undef $jsonobj;
                       return;
@@ -310,7 +309,7 @@ sub echo {
            # TTLレコードを追加する。
            $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
 
-           $self->app->log->debug("DEBUG: msg: $msg");
+           $self->app->log->debug("DEBUG: $username msg: $msg");
 
            # TTl DB
            $timelinecoll->insert($jsonobj);
@@ -320,25 +319,25 @@ sub echo {
            # 攻撃を受けたか確認する　基本NPC用
            my $attack_chk = $timelinecoll->find_one({ "to" => $userid });
            my $jsonattackchk = to_json($attack_chk);
-              $self->app->log->debug("DEBUG: $jsonattackchk") if ($attack_chk); 
+              $self->app->log->debug("DEBUG: $username $jsonattackchk") if ($attack_chk); 
               if ($attack_chk) {
                                 $clients->{$id}->send({ json => $attack_chk });
                                 return;  # この処理が入るとボットはダウンするので終了する。
                                }
 
            # 現状の情報を送信 
-           # mongo3.2用 6000m以内のデータを返す
+           # mongo3.2用 3000m以内のデータを返す
            my $geo_points_cursole = $timelinecoll->query({ geometry => { 
                                                            '$nearSphere' => {
                                                            '$geometry' => {
                                                             type => "point",
                                                                 "coordinates" => [ $jsonobj->{loc}->{lng} , $jsonobj->{loc}->{lat} ]}, 
                                                            '$minDistance' => 0,
-                                                           '$maxDistance' => 6000 
+                                                           '$maxDistance' => 3000 
                                      }}});
 
             # DEBUG not work cursole clear becose non DATAs
-            #  $self->app->log->debug("DEBUG: MongoDB find.");
+            #  $self->app->log->debug("DEBUG: $username MongoDB find.");
             #      my @geo_points = $geo_points_cursole->all;
             #      my $ddump = Dumper(@geo_points);
             #      $self->app->log->debug("DEBUG: Dumper: $ddump");
@@ -364,7 +363,7 @@ sub echo {
        #makerをredisから抽出して、距離を算出してリストに加える。
 
              my $makerkeylist = $self->redis->keys("Maker*");
-             my $makerlist = [];
+             my @makerlist = ();
 
              foreach my $aline (@$makerkeylist) {
                        my $makerpoint = from_json($self->redis->get($aline));
@@ -374,21 +373,22 @@ sub echo {
                       my @t_p = NESW($makerpoint->{loc}->{lng}, $makerpoint->{loc}->{lat});
                       my $t_dist = great_circle_distance(@s_p,@t_p,6378140);
                        
-                      if ( $t_dist < 6000) {
-                       push (@$makerlist, $makerpoint );
+                      if ( $t_dist < 3000) {
+                       push (@makerlist, $makerpoint );
                        }
                    }
 
                # makerとメンバーリストを結合する
-                 push @pointlist,@$makerlist;
+                 push @pointlist,@makerlist;
 
                #    my @pointlist = $geo_points_cursole->all;
                    my $listhash = { 'pointlist' => \@pointlist };
                    my $jsontext = to_json($listhash); 
                       $clients->{$id}->send($jsontext);
-                      $self->app->log->debug("DEBUG: geo_points: $jsontext");
+                      $self->app->log->debug("DEBUG: $username geo_points: $jsontext");
 
                    undef @pointlist;
+                   undef @makerlist;
                    undef $listhash;
                    undef $jsontext;
                    undef $geo_points_cursole;
@@ -398,14 +398,11 @@ sub echo {
   $self->on(finish => sub {
         my ($self,$msg) = @_;
 
-        $self->app->log->debug("DEBUG: On finish!!");
+        $self->app->log->debug("DEBUG: $username On finish!!");
         delete $clients->{$id};
 
         #redis unsubscribe
         $self->redis->unsubscribe(\@chatArray);
-
-        # loopの停止
-     #   Mojo::IOLoop->remove($loopid); 
 
      # 再接続で利用するから。
      #   undef $timelinecoll;
@@ -415,11 +412,9 @@ sub echo {
 
      #   undef $self->tx->connection;
      #   undef $self->tx;
-     # pubsubリスナーの停止
-     #   if ( ! defined $clients->{$id}){ $pubsub->unlisten( $userid => $cb); }
   });
 
-sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
+sub NESW { deg2rad($_[0]), deg2rad( 90 - $_[1]) }
 
 #redis receve
      $self->redis->on(message => sub {
@@ -444,7 +439,7 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
                       my @t_p = NESW($messobj->{loc}->{lng}, $messobj->{loc}->{lat});
                       my $t_dist = great_circle_distance(@s_p,@t_p,6378140);
 
-                      if ( $t_dist < 6000 ){
+                      if ( $t_dist < 3000 ){
                         if ( defined $clients->{$id} ){ 
                            $clients->{$id}->send($mess);
                            $self->app->log->debug("DEBUG: send websocket:($username) $mess");
@@ -465,12 +460,13 @@ sub NESW { deg2rad($_[0]), deg2rad($_[1]) }
 
      $self->redis->on(error => sub {
                    my ($redis,$err) = @_;
-                      $self->app->log->debug("DEBUG: $username redis error: $err");
+                      $self->app->log->info("DEBUG: $username redis error: $err");
                    });
 
-      my $stream = Mojo::IOLoop->stream($self->tx->connection);
-         $stream->timeout(0);  # no timeout!
-         $self->inactivity_timeout(10000);
+      # 複数クライアントに対応している為 websocket毎に stream_ioはあまり意味がないのか？送信するわけでも無いから
+         $stream_io->{$id} = Mojo::IOLoop->stream($id);
+         $stream_io->{$id}->timeout(30);  # 30sec
+         $self->inactivity_timeout(12000); # 12sec 
 
 } # echo
 
