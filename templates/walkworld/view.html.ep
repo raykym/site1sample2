@@ -239,7 +239,7 @@ function devicemotionHandler(event) {
 
 // JAIRO 
 function JairoSence(){
-     if (SencerToggle) {   window.addEventListener("deviceorientation", deviceorientationHandler);
+     if (SencerToggle) {   window.addEventListener("deviceorientation", deviceorientationHandler, true);
            } else {
                            window.removeEventListener("deviceorientation", deviceorientationHandler);
            }
@@ -254,15 +254,46 @@ function deviceorientationHandler(event) {
   // Y軸
     $('#event_y').text(event.gamma);
   // Z軸
-     // trunsrate Noth0 and RightRound   default east0 and leftRound becode +90
-     //N0r = (event.alpha * -1 ) + 90;
-     N0r = (event.alpha * -1 ); 
+     // trunsrate Noth0 and RightRound   
+  //   N0r = (event.alpha * -1 ); 
+       N0r = compassHeading(event.alpha, event.beta, event.gamma);
 
  //   $('#event_z').text(N0r);
 
  //   $('#output_d').text("alpha:(-360) " + Math.ceil(N0r));
 } // deviceorientationHandler
 
+// W3C 
+function compassHeading(alpha, beta, gamma) {
+  var degtorad = Math.PI / 180; // Degree-to-Radian conversion
+
+  var _x = beta ? beta * degtorad : 0; // beta value
+  var _y = gamma ? gamma * degtorad : 0; // gamma value
+  var _z = alpha ? alpha * degtorad : 0; // alpha value
+
+  var cX = Math.cos(_x);
+  var cY = Math.cos(_y);
+  var cZ = Math.cos(_z);
+  var sX = Math.sin(_x);
+  var sY = Math.sin(_y);
+  var sZ = Math.sin(_z);
+
+  // Calculate Vx and Vy components
+  var Vx = -cZ * sY - sZ * sX * cY;
+  var Vy = -sZ * sY + cZ * sX * cY;
+
+  // Calculate compass heading
+  var compassHeading = Math.atan(Vx / Vy);
+
+  // Convert compass heading to use whole unit circle
+  if (Vy < 0) {
+    compassHeading += Math.PI;
+  } else if (Vx < 0) {
+    compassHeading += 2 * Math.PI;
+  }
+
+  return compassHeading * ( 180 / Math.PI ); // Compass Heading (in degrees)
+}
 
 // 方角チェック 対象メンバーをリストアップ
 function direct_distance(){
@@ -677,8 +708,8 @@ function wsCall(aCallback){
                      return (element.distance == min_dist);
                  });
 
-          %#   console.log("DEBUG: direction:" + distobj[0].direction ); //ghostが居ないとエラーになる
-          %#   console.log("DEBUG: N0r:" + N0r );
+             console.log("DEBUG: direction:" + distobj[0].direction ); //ghostが居ないとエラーになる
+             console.log("DEBUG: N0r:" + N0r );
           %#   console.log("DEBUG: arrow:" + (distobj[0].direction - N0r) );
           %#   console.log("DEBUG: userid:" + distobj[0].userid );
           %#   console.log("DEBUG: distance:" + distobj[0].distance );
