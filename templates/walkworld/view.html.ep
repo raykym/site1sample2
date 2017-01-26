@@ -25,6 +25,7 @@
 
  geo_dist = []; //UIDと距離のリスト
  tar_get = [];
+ geo_dist_arrow = []; //arrow用
 
  gpssetID = null;
  gpsInterval = 10000; // 10secで１回GPSをチェックする。
@@ -51,6 +52,7 @@ $(function(){
    // 常時起動ならタイマーは不要
    AccelSence();
    JairoSence();
+   calibration();
    loopstart();   // gps auto start.....
   });
     wsCall(dumCall);
@@ -176,7 +178,7 @@ function geoDistance(lat1, lng1, lat2, lng2, precision) {
 
 // 加速度センサー
 function AccelSence(){
-    if (SencerToggle) {    window.addEventListener("devicemotion", devicemotionHandler);
+    if (SencerToggle) {    window.addEventListener("devicemotion", devicemotionHandler, true);
           } else {
                            window.removeEventListener("devicemotion", devicemotionHandler);
           }
@@ -237,6 +239,13 @@ function devicemotionHandler(event) {
   //  $('#output_d').text(onCount);
 }
 
+function calibration() {
+      window.addEventListener("compassneedscalibration", function(event) {
+          alert('Your compass needs calibrating! Wave your device in a figure-eight motion');
+          event.preventDefault();
+      }, true);
+}
+
 // JAIRO 
 function JairoSence(){
      if (SencerToggle) {   window.addEventListener("deviceorientation", deviceorientationHandler, true);
@@ -245,9 +254,24 @@ function JairoSence(){
            }
 }
 
+var ALPHA;
+var BETA;
+var GAMMA;
+var ABSO;
+
 function deviceorientationHandler(event) {
 
    //   console.log("DEBUG: JAIRO START!!");
+
+   //   console.log("DEBUG: alpha: " + event.alpha);
+   //   console.log("DEBUG: beta: " + event.beta);
+   //   console.log("DEBUG: gamma: " + event.gamma);
+   //   console.log("DEBUG: absolute: " + event.absolute);
+        event.absorute = true;
+        event.alpha = null;
+        event.beta = null;
+        event.gamma = null;
+        event.absorute = true;
 
   // X軸
     $('#event_x').text(event.beta);
@@ -255,8 +279,13 @@ function deviceorientationHandler(event) {
     $('#event_y').text(event.gamma);
   // Z軸
      // trunsrate Noth0 and RightRound   
-  //   N0r = (event.alpha * -1 ); 
-       N0r = compassHeading(event.alpha, event.beta, event.gamma);
+         N0r = (event.alpha * -1 ); 
+     //    N0r = compassHeading(event.alpha, event.beta, event.gamma);
+
+       ALPHA = event.alpha;
+       BETA = event.beta;
+       GAMMA = event.gamma;
+       ABSO = event.absolute;
 
  //   $('#event_z').text(N0r);
 
@@ -675,21 +704,31 @@ function wsCall(aCallback){
            var cp_plist_nd = JSON.parse(JSON.stringify(plist_nd));
 
               geo_dist.splice(0,geo_dist.length); // delete data
+              geo_dist_arrow.splice(0,geo_dist_arrow.length); // delete data
 
-          // 距離と方角をチェックしてリスト化
+          // 距離と方角をチェックしてリスト化  ターゲット用はユーザを含む
               cp_plist_nd.filter ( function ( element, index ){
                  if ( element.name == username ) { return; }
                  if ( element.name == "maker" ) { return; }
                  var p_dist = geoDistance( user_stat.loc.lat, user_stat.loc.lng, element.loc.lat, element.loc.lng, 6 );
                  var p_direc = geoDirection ( user_stat.loc.lat, user_stat.loc.lng, element.loc.lat, element.loc.lng);
-                 var p_key = { userid : element.userid, distance : p_dist, direction : Math.ceil(p_direc) };
+                 var p_key = { userid : element.userid, distance : p_dist, direction : Math.ceil(p_direc), category : element.category };
                  geo_dist.push(p_key);
               });
-
+           // arrow用リスト ghostのみ
+              plist_nonuser.filter ( function ( element, index ){
+                 var p_dist = geoDistance( user_stat.loc.lat, user_stat.loc.lng, element.loc.lat, element.loc.lng, 6 );
+                 var p_direc = geoDirection ( user_stat.loc.lat, user_stat.loc.lng, element.loc.lat, element.loc.lng);
+                 var p_key = { userid : element.userid, distance : p_dist, direction : Math.ceil(p_direc) };
+                 geo_dist_arrow.push(p_key);
+              });
+              
+              var debugtext = JSON.stringify(geo_dist_arrow);
+              console.log("DEBUG: geo_dist_arrow:" + debugtext );
 
         // 警告バイブレーション　500m以下
-             var tar_buz = geo_dist.filter ( function ( element, index ){
-                 return (element.distance < 500);
+             var tar_buz = geo_dist_arrow.filter ( function ( element, index ){
+                 return element.distance < 500; 
                  });
 
             if ( tar_buz.length != 0 ){
@@ -702,24 +741,45 @@ function wsCall(aCallback){
                }
 
           // 近距離の方角を抽出
-             var min_dist = Math.min.apply(null, geo_dist.map(function(o){return o.distance}));
+             var min_dist = Math.min.apply(null, geo_dist_arrow.map(function(o){return o.distance}));
 
-             var distobj = geo_dist.filter( function (element, index) {
+             var distobj = geo_dist_arrow.filter( function (element, index) {
                      return (element.distance == min_dist);
                  });
+             var arrow_d;
+             var tmp_arrow = distobj[0].direction - N0r;
+             if ( 0 > tmp_arrow ) {
+                arrow_d = N0r - tmp_arrow;
+                } else { arrow_d = N0r + tmp_arrow; }
 
-             console.log("DEBUG: direction:" + distobj[0].direction ); //ghostが居ないとエラーになる
+             if ( distobj[0] ) {
+                 console.log("DEBUG: direction:" + distobj[0].direction ); //ghostが居ないとエラーになる
+                 }
+
+             $('#output_d').text(Math.ceil(distobj[0].distance));
+
              console.log("DEBUG: N0r:" + N0r );
-          %#   console.log("DEBUG: arrow:" + (distobj[0].direction - N0r) );
+             console.log("DEBUG: arrow:" + arrow_d );
+             console.log("-------------------------");
+             console.log("DEBUG: alpha: " + ALPHA );
+             console.log("DEBUG: beta: " + BETA );
+             console.log("DEBUG: gammma: " + GAMMA );
+             console.log("DEBUG: absolute: " + ABSO );
+             
           %#   console.log("DEBUG: userid:" + distobj[0].userid );
           %#   console.log("DEBUG: distance:" + distobj[0].distance );
           %#   console.log("DEBUG: distobj:" + JSON.stringify(distobj) );
 
           // 方向指示表示
 
-             if ( distobj[0] ){ 
+             if ( arrow_d ){ 
                  $("#arrow").css({
-                     "transform" : "rotate(" + (distobj[0].direction - N0r) + "deg)",
+                     "transform" : "rotate(" + arrow_d + "deg)",
+                    })
+             }
+             if ( N0r ){ 
+                 $("#arrow2").css({
+                     "transform" : "rotate(" + N0r + "deg)",
                     })
              }
 
@@ -790,7 +850,9 @@ function keyInput(){
                gpsset(resolv);
             });
            fetchgps.then(function(){
-                // センサーの一時停止を止めたので処理が無くなった
+
+           %#   ws.close
+           %#   console.log("DEBUG: ws.close ---------------");
            });
 }
 
@@ -871,9 +933,12 @@ function setPointMaker(){
   </div>
   <div id="gmap" class="mapbase" style="width : 100%; height : 360px;"></div>
   <div class="ui-grid-a">
-    <div class="ui-block-a"><div class="ui-bar"  style="hight: 60px"><button type="button" class="ui-btn " onClick="keyInput();" style="background-color: #aac78d; font-size: x-small;"><img id="arrow" class="arrow" src="/img/cyrclearrow_mos.png" width="45" hight="45"/><BR>GPS</button></div></div>
+    <div class="ui-block-a"><div class="ui-bar"  style="hight: 60px"><button type="button" class="ui-btn " onClick="keyInput();" style="background-color: #aac78d; font-size: x-small;"><img id="arrow2" class="arrow2" src="/img/arrow.png" width="45" hight="45"/><img id="arrow" class="arrow" src="/img/cyrclearrow_mos.png" width="45" hight="45"/><BR>Head | ghost</button></div></div>
     <div class="ui-block-b">
-                          <div class="ui-bar"  style="hight: 60px">Network：<text id="output"></text></div>
+                          <div class="ui-bar"  style="hight: 60px">
+                               Network：<text id="output"></text>
+                               Distance : <text id="output_d"></text>
+                          </div>
                           <button id="emuon" type="button" class="ui-btn" onClick="hitEmure();" style="background-color: #aac78d;" disabled='disabled'>HIT Emurator Support</button>
     </div>
   </div> <!-- ui-grid-a -->
