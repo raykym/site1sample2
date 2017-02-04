@@ -262,7 +262,7 @@ sub webpubsub {
     # WebSocket接続維持設定
        my $stream = Mojo::IOLoop->stream($self->tx->connection);
           $stream->timeout(0);
-        ##  $self->inactivity_timeout(500);
+          $self->inactivity_timeout(60000); #60sec
 
     # on message・・・・・・・
        $self->on(message => sub {

@@ -1,0 +1,1684 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1200" height="770" onload="init(evt)" viewBox="0 0 1200 770" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<defs >
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#eeeeee" offset="5%" />
+		<stop stop-color="#eeeeb0" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	.func_g:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	var details, svg;
+	function init(evt) { 
+		details = document.getElementById("details").firstChild; 
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+	}
+
+	// mouse-over for info
+	function s(info) { details.nodeValue = "sub " + info; }
+	function c() { details.nodeValue = ' '; }
+
+	// functions
+	function find_child(parent, name, attr) {
+		var children = parent.childNodes;
+		for (var i=0; i<children.length;i++) {
+			if (children[i].tagName == name)
+				return (attr != undefined) ? children[i].attributes[attr].value : children[i];
+		}
+		return;
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_"+attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_"+attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_"+attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes["width"].value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)/,"");
+		t.attributes["x"].value = parseFloat(r.attributes["x"].value) +3;
+		
+		// Smaller than this size won't fit anything
+		if (w < 2*12*0.59) {
+			t.textContent = "";
+			return;
+		}
+		
+		t.textContent = txt;
+		// Fit in full text width
+		if (/^ *$/.test(txt) || t.getSubStringLength(0, txt.length) < w)
+			return;
+		
+		for (var x=txt.length-2; x>0; x--) {
+			if (t.getSubStringLength(0, x+2) <= w) { 
+				t.textContent = txt.substring(0,x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes["x"] != undefined) {
+				orig_save(e, "x");
+				e.attributes["x"].value = (parseFloat(e.attributes["x"].value) - x - 10) * ratio + 10;
+				if(e.tagName == "text") e.attributes["x"].value = find_child(e.parentNode, "rect", "x") + 3;
+			}
+			if (e.attributes["width"] != undefined) {
+				orig_save(e, "width");
+				e.attributes["width"].value = parseFloat(e.attributes["width"].value) * ratio;
+			}
+		}
+		
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_child(c[i], x-10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes["x"] != undefined) {
+				orig_save(e, "x");
+				e.attributes["x"].value = 10;
+			}
+			if (e.attributes["width"] != undefined) {
+				orig_save(e, "width");
+				e.attributes["width"].value = parseInt(svg.width.baseVal.value) - (10*2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) { 
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr["width"].value);
+		var xmin = parseFloat(attr["x"].value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr["y"].value);
+		var ratio = (svg.width.baseVal.value - 2*10) / width;
+		
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+		
+		var unzoombtn = document.getElementById("unzoom");
+		unzoombtn.style["opacity"] = "1.0";
+		
+		var el = document.getElementsByTagName("g");
+		for(var i=0;i<el.length;i++){
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a["x"].value);
+			var ew = parseFloat(a["width"].value);
+			// Is it an ancestor
+			if (0 == 0) {
+				var upstack = parseFloat(a["y"].value) > ymin;
+			} else {
+				var upstack = parseFloat(a["y"].value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.style["opacity"] = "0.5";
+					zoom_parent(e);
+					e.onclick = function(e){unzoom(); zoom(this);};
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.style["display"] = "none";
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.style["display"] = "none";
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					e.onclick = function(e){zoom(this);};
+					update_text(e);
+				}
+			}
+		}
+	}
+	function unzoom() {
+		var unzoombtn = document.getElementById("unzoom");
+		unzoombtn.style["opacity"] = "0.0";
+		
+		var el = document.getElementsByTagName("g");
+		for(i=0;i<el.length;i++) {
+			el[i].style["display"] = "block";
+			el[i].style["opacity"] = "1";
+			zoom_reset(el[i]);
+			update_text(el[i]);
+		}
+	}	
+
+	// search
+	function reset_search() {
+		var el = document.getElementsByTagName("rect");
+		for (var i=0; i < el.length; i++){
+			orig_load(el[i], "fill")
+		}
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)", "");
+			if (term != null) {
+				search(term)
+			}
+		} else {
+			reset_search();
+			searching = 0;
+			var searchbtn = document.getElementById("search");
+			searchbtn.style["opacity"] = "0.1";
+			searchbtn.firstChild.nodeValue = "Search"
+		}
+	}
+	function search(term) {
+		var re = new RegExp(term);
+		var el = document.getElementsByTagName("g");
+		for (var i=0; i < el.length; i++){
+			var e = el[i];
+			if (e.attributes["class"].value == "func_g") {
+				// Scrape the function name from the onmouseover
+				// callback text. This is a little dirty.
+				var func = e.attributes["onmouseover"].value;
+				if (func != null) {
+					func = func.substr(3);
+					func = func.replace(/ .*/, "");
+					var r = find_child(e, "rect");
+					if (r == null) {
+						// the rect might be wrapped in an anchor
+						// if nameattr href is being used
+						if (r = find_child(e, "a")) {
+						    r = find_child(r, "rect");
+						}
+					}
+				}
+				if (func != null && r != null &&
+				    func.match(re)) {
+					orig_save(r, "fill");
+					r.attributes["fill"].value =
+					    "rgb(230,0,230)";
+					searching = 1;
+				}
+			}
+		}
+		if (searching) {
+			var searchbtn = document.getElementById("search");
+			searchbtn.style["opacity"] = "1.0";
+			searchbtn.firstChild.nodeValue = "Reset Search"
+		}
+	}
+	function searchover(e) {
+		var searchbtn = document.getElementById("search");
+		searchbtn.style["opacity"] = "1.0";
+	}
+	function searchout(e) {
+		var searchbtn = document.getElementById("search");
+		if (searching) {
+			searchbtn.style["opacity"] = "1.0";
+		} else {
+			searchbtn.style["opacity"] = "0.1";
+		}
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="1200.0" height="770.0" fill="url(#background)"  />
+<text text-anchor="middle" x="600.00" y="24" font-size="17" font-family="Verdana" fill="rgb(0,0,0)"  >Flame Graph</text>
+<text text-anchor="" x="10.00" y="753" font-size="12" font-family="Verdana" fill="rgb(0,0,0)" id="details" > </text>
+<text text-anchor="" x="10.00" y="24" font-size="12" font-family="Verdana" fill="rgb(0,0,0)" id="unzoom" onclick="unzoom()" style="opacity:0.0;cursor:pointer" >Reset Zoom</text>
+<text text-anchor="" x="1090.00" y="24" font-size="12" font-family="Verdana" fill="rgb(0,0,0)" id="search" onmouseover="searchover()" onmouseout="searchout()" onclick="search_prompt()" style="opacity:0.1;cursor:pointer" >Search</text>
+<g class="func_g" onmouseover="s('Moo::with (19,874 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::with (19,874 microseconds, 0.02%)</title><a xlink:href="Moo-pm-492-line.html#56" target="_top"><rect x="17.7" y="577" width="0.2" height="15.0" fill="rgb(235,159,33)" rx="2" ry="2" />
+<text text-anchor="" x="20.67" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Collection::BEGIN@37 (10,645 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Collection::BEGIN@37 (10,645 microseconds, 0.01%)</title><a xlink:href="MongoDB-Collection-pm-1160-line.html#37" target="_top"><rect x="23.5" y="625" width="0.1" height="15.0" fill="rgb(235,162,33)" rx="2" ry="2" />
+<text text-anchor="" x="26.52" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('File::Spec::Unix::abs2rel (9,832 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>File::Spec::Unix::abs2rel (9,832 microseconds, 0.01%)</title><a xlink:href="File-Spec-Unix-pm-16-line.html#150" target="_top"><rect x="1188.4" y="625" width="0.1" height="15.0" fill="rgb(234,199,32)" rx="2" ry="2" />
+<text text-anchor="" x="1191.37" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::has (10,074 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::has (10,074 microseconds, 0.01%)</title><a xlink:href="Moo-pm-492-line.html#61" target="_top"><rect x="19.5" y="593" width="0.1" height="15.0" fill="rgb(230,159,28)" rx="2" ry="2" />
+<text text-anchor="" x="22.47" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Transaction::WebSocket::parse_message (111,888 microseconds, 0.10%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Transaction::WebSocket::parse_message (111,888 microseconds, 0.10%)</title><a xlink:href="Mojo-Transaction-WebSocket-pm-198-line.html#69" target="_top"><rect x="1186.9" y="465" width="1.2" height="15.0" fill="rgb(248,136,47)" rx="2" ry="2" />
+<text text-anchor="" x="1189.93" y="475.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Sub::Quote::quote_sub (20,368 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Sub::Quote::quote_sub (20,368 microseconds, 0.02%)</title><a xlink:href="Sub-Quote-pm-971-line.html#78" target="_top"><rect x="20.2" y="593" width="0.3" height="15.0" fill="rgb(228,164,25)" rx="2" ry="2" />
+<text text-anchor="" x="23.24" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::_Utils::_load_module (20,133 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::_Utils::_load_module (20,133 microseconds, 0.02%)</title><a xlink:href="Moo-_Utils-pm-495-line.html#48" target="_top"><rect x="22.1" y="545" width="0.2" height="15.0" fill="rgb(237,159,35)" rx="2" ry="2" />
+<text text-anchor="" x="25.09" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::has (16,360 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::has (16,360 microseconds, 0.01%)</title><a xlink:href="Moo-pm-492-line.html#61" target="_top"><rect x="19.6" y="609" width="0.2" height="15.0" fill="rgb(230,159,28)" rx="2" ry="2" />
+<text text-anchor="" x="22.63" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Cursor::all (35,259 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Cursor::all (35,259 microseconds, 0.03%)</title><a xlink:href="MongoDB-Cursor-pm-991-line.html#534" target="_top"><rect x="1187.7" y="401" width="0.4" height="15.0" fill="rgb(230,162,28)" rx="2" ry="2" />
+<text text-anchor="" x="1190.73" y="411.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Renderer::_render_template (52,308 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Renderer::_render_template (52,308 microseconds, 0.05%)</title><a xlink:href="Mojolicious-Renderer-pm-204-line.html#203" target="_top"><rect x="1185.1" y="113" width="0.6" height="15.0" fill="rgb(245,136,45)" rx="2" ry="2" />
+<text text-anchor="" x="1188.10" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::get_writable_link (22,824 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::get_writable_link (22,824 microseconds, 0.02%)</title><a xlink:href="MongoDB-_Topology-pm-1033-line.html#312" target="_top"><rect x="1187.3" y="369" width="0.2" height="15.0" fill="rgb(236,162,34)" rx="2" ry="2" />
+<text text-anchor="" x="1190.30" y="379.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::EventEmitter::emit (807,906 microseconds, 0.72%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::EventEmitter::emit (807,906 microseconds, 0.72%)</title><a xlink:href="Mojo-EventEmitter-pm-66-line.html#10" target="_top"><rect x="1179.6" y="529" width="8.5" height="15.0" fill="rgb(237,136,35)" rx="2" ry="2" />
+<text text-anchor="" x="1182.61" y="539.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::OO::clone (14,182 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::OO::clone (14,182 microseconds, 0.01%)</title><a xlink:href="Specio-OO-pm-248-line.html#259" target="_top"><rect x="13.6" y="529" width="0.1" height="15.0" fill="rgb(251,179,50)" rx="2" ry="2" />
+<text text-anchor="" x="16.60" y="539.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Cursor::BEGIN@32 (65,861 microseconds, 0.06%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Cursor::BEGIN@32 (65,861 microseconds, 0.06%)</title><a xlink:href="MongoDB-Cursor-pm-991-line.html#32" target="_top"><rect x="18.0" y="609" width="0.7" height="15.0" fill="rgb(244,162,43)" rx="2" ry="2" />
+<text text-anchor="" x="21.02" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_CreateIndexes::BEGIN@31 (43,231 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_CreateIndexes::BEGIN@31 (43,231 microseconds, 0.04%)</title><a xlink:href="MongoDB-Op-_CreateIndexes-pm-1162-line.html#31" target="_top"><rect x="21.9" y="593" width="0.4" height="15.0" fill="rgb(228,162,26)" rx="2" ry="2" />
+<text text-anchor="" x="24.86" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Database::BEGIN@31 (22,566 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Database::BEGIN@31 (22,566 microseconds, 0.02%)</title><a xlink:href="MongoDB-Database-pm-1121-line.html#31" target="_top"><rect x="21.4" y="625" width="0.2" height="15.0" fill="rgb(228,162,26)" rx="2" ry="2" />
+<text text-anchor="" x="24.36" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::BEGIN@3 (13,322 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::BEGIN@3 (13,322 microseconds, 0.01%)</title><a xlink:href="Site1-pm-86-line.html#3" target="_top"><rect x="11.8" y="657" width="0.1" height="15.0" fill="rgb(239,149,37)" rx="2" ry="2" />
+<text text-anchor="" x="14.77" y="667.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::BUILD (34,048 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::BUILD (34,048 microseconds, 0.03%)</title><a xlink:href="MongoDB-MongoClient-pm-987-line.html#1177" target="_top"><rect x="1184.2" y="81" width="0.3" height="15.0" fill="rgb(229,162,26)" rx="2" ry="2" />
+<text text-anchor="" x="1187.16" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::Match::_match (11,299 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::Match::_match (11,299 microseconds, 0.01%)</title><a xlink:href="Mojolicious-Routes-Match-pm-202-line.html#38" target="_top"><rect x="1186.0" y="241" width="0.1" height="15.0" fill="rgb(242,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1188.96" y="251.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_Command::execute (33,595 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_Command::execute (33,595 microseconds, 0.03%)</title><a xlink:href="MongoDB-Op-_Command-pm-1010-line.html#62" target="_top"><rect x="1187.7" y="289" width="0.4" height="15.0" fill="rgb(240,162,38)" rx="2" ry="2" />
+<text text-anchor="" x="1190.74" y="299.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::Union::parent (14,859 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::Union::parent (14,859 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-Union-pm-935-line.html#141" target="_top"><rect x="16.5" y="481" width="0.1" height="15.0" fill="rgb(241,185,39)" rx="2" ry="2" />
+<text text-anchor="" x="19.48" y="491.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_BulkWrite::BEGIN@33 (14,502 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_BulkWrite::BEGIN@33 (14,502 microseconds, 0.01%)</title><a xlink:href="MongoDB-Op-_BulkWrite-pm-1179-line.html#33" target="_top"><rect x="23.2" y="609" width="0.2" height="15.0" fill="rgb(242,162,41)" rx="2" ry="2" />
+<text text-anchor="" x="26.21" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::Declare::any_can_type (13,604 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::Declare::any_can_type (13,604 microseconds, 0.01%)</title><a xlink:href="Specio-Declare-pm-246-line.html#186" target="_top"><rect x="13.0" y="577" width="0.1" height="15.0" fill="rgb(250,179,49)" rx="2" ry="2" />
+<text text-anchor="" x="15.97" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::send_write_op (9,589 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::send_write_op (9,589 microseconds, 0.01%)</title><a xlink:href="MongoDB-MongoClient-pm-987-line.html#1385" target="_top"><rect x="1187.6" y="385" width="0.1" height="15.0" fill="rgb(242,162,41)" rx="2" ry="2" />
+<text text-anchor="" x="1190.63" y="395.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::_exception (603,157 microseconds, 0.54%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::_exception (603,157 microseconds, 0.54%)</title><a xlink:href="Mojolicious-pm-87-line.html#186" target="_top"><rect x="1179.8" y="353" width="6.3" height="15.0" fill="rgb(247,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="1182.78" y="363.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DBIx::Connector::dbh (18,654 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DBIx::Connector::dbh (18,654 microseconds, 0.02%)</title><a xlink:href="DBIx-Connector-pm-214-line.html#74" target="_top"><rect x="1183.2" y="161" width="0.2" height="15.0" fill="rgb(234,162,32)" rx="2" ry="2" />
+<text text-anchor="" x="1186.16" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DateTime::Locale::BEGIN@11 (22,993 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DateTime::Locale::BEGIN@11 (22,993 microseconds, 0.02%)</title><a xlink:href="DateTime-Locale-pm-463-line.html#11" target="_top"><rect x="13.9" y="593" width="0.2" height="15.0" fill="rgb(231,94,28)" rx="2" ry="2" />
+<text text-anchor="" x="16.87" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::JSON::BEGIN@6 (11,642 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::JSON::BEGIN@6 (11,642 microseconds, 0.01%)</title><a xlink:href="Mojo-JSON-pm-115-line.html#6" target="_top"><rect x="11.5" y="481" width="0.1" height="15.0" fill="rgb(233,136,31)" rx="2" ry="2" />
+<text text-anchor="" x="14.51" y="491.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Plugins::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Plugins.pm:15] (602,928 microseconds, 0.54%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Plugins::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Plugins.pm:15] (602,928 microseconds, 0.54%)</title><a xlink:href="Mojolicious-Plugins-pm-203-line.html#15" target="_top"><rect x="1179.8" y="337" width="6.3" height="15.0" fill="rgb(239,136,37)" rx="2" ry="2" />
+<text text-anchor="" x="1182.79" y="347.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::BEGIN@2 (140,151 microseconds, 0.12%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::BEGIN@2 (140,151 microseconds, 0.12%)</title><a xlink:href="Mojolicious-pm-87-line.html#2" target="_top"><rect x="10.2" y="625" width="1.5" height="15.0" fill="rgb(240,136,39)" rx="2" ry="2" />
+<text text-anchor="" x="13.25" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::Controller::Walkworld::view (53,428 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::Controller::Walkworld::view (53,428 microseconds, 0.05%)</title><a xlink:href="Walkworld-pm-1347-line.html#20" target="_top"><rect x="1185.1" y="161" width="0.6" height="15.0" fill="rgb(230,149,28)" rx="2" ry="2" />
+<text text-anchor="" x="1188.09" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::OO::clone (14,278 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::OO::clone (14,278 microseconds, 0.01%)</title><a xlink:href="Specio-OO-pm-248-line.html#259" target="_top"><rect x="14.6" y="577" width="0.1" height="15.0" fill="rgb(251,179,50)" rx="2" ry="2" />
+<text text-anchor="" x="17.58" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::new (15,295 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::new (15,295 microseconds, 0.01%)</title><a xlink:href="(eval 1024)[Sub-Quote-pm-3]-1364-line.html#12" target="_top"><rect x="1184.2" y="33" width="0.2" height="15.0" fill="rgb(235,162,33)" rx="2" ry="2" />
+<text text-anchor="" x="1187.20" y="43.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Method::Generate::Accessor::generate_method (14,079 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Method::Generate::Accessor::generate_method (14,079 microseconds, 0.01%)</title><a xlink:href="Method-Generate-Accessor-pm-977-line.html#43" target="_top"><rect x="19.3" y="577" width="0.1" height="15.0" fill="rgb(248,138,47)" rx="2" ry="2" />
+<text text-anchor="" x="22.25" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Pod::Usage::BEGIN@450 (19,121 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Pod::Usage::BEGIN@450 (19,121 microseconds, 0.02%)</title><a xlink:href="Pod-Usage-pm-74-line.html#450" target="_top"><rect x="1188.9" y="641" width="0.2" height="15.0" fill="rgb(228,212,25)" rx="2" ry="2" />
+<text text-anchor="" x="1191.91" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Reactor::Poll::start (110,582,706 microseconds, 98.62%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Reactor::Poll::start (110,582,706 microseconds, 98.62%)</title><a xlink:href="Mojo-Reactor-Poll-pm-188-line.html#96" target="_top"><rect x="24.6" y="609" width="1163.7" height="15.0" fill="rgb(239,136,37)" rx="2" ry="2" />
+<text text-anchor="" x="27.58" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >Mojo::Reactor::Poll::start</text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Base::import (42,023 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Base::import (42,023 microseconds, 0.04%)</title><a xlink:href="Mojo-Base-pm-19-line.html#64" target="_top"><rect x="11.2" y="513" width="0.4" height="15.0" fill="rgb(238,136,36)" rx="2" ry="2" />
+<text text-anchor="" x="14.20" y="523.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DateTime::Types::BEGIN@13 (22,034 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DateTime::Types::BEGIN@13 (22,034 microseconds, 0.02%)</title><a xlink:href="DateTime-Types-pm-240-line.html#13" target="_top"><rect x="12.5" y="577" width="0.3" height="15.0" fill="rgb(244,94,43)" rx="2" ry="2" />
+<text text-anchor="" x="15.55" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('File::Spec::Functions::__ANON__[/usr/lib/perl/5.14/File/Spec/Functions.pm:43] (10,122 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>File::Spec::Functions::__ANON__[/usr/lib/perl/5.14/File/Spec/Functions.pm:43] (10,122 microseconds, 0.01%)</title><a xlink:href="File-Spec-Functions-pm-33-line.html#43" target="_top"><rect x="1188.4" y="641" width="0.1" height="15.0" fill="rgb(239,199,37)" rx="2" ry="2" />
+<text text-anchor="" x="1191.37" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::BEGIN@33 (309,118 microseconds, 0.28%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::BEGIN@33 (309,118 microseconds, 0.28%)</title><a xlink:href="MongoDB-pm-219-line.html#33" target="_top"><rect x="17.2" y="641" width="3.3" height="15.0" fill="rgb(242,162,41)" rx="2" ry="2" />
+<text text-anchor="" x="20.25" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Transaction::HTTP::_headers (12,430 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Transaction::HTTP::_headers (12,430 microseconds, 0.01%)</title><a xlink:href="Mojo-Transaction-HTTP-pm-91-line.html#85" target="_top"><rect x="1186.2" y="385" width="0.1" height="15.0" fill="rgb(238,136,36)" rx="2" ry="2" />
+<text text-anchor="" x="1189.16" y="395.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::get_database (11,756 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::get_database (11,756 microseconds, 0.01%)</title><a xlink:href="MongoDB-MongoClient-pm-987-line.html#1478" target="_top"><rect x="1185.0" y="145" width="0.1" height="15.0" fill="rgb(247,162,46)" rx="2" ry="2" />
+<text text-anchor="" x="1187.97" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::has (32,173 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::has (32,173 microseconds, 0.03%)</title><a xlink:href="Moo-pm-492-line.html#61" target="_top"><rect x="20.1" y="625" width="0.4" height="15.0" fill="rgb(230,159,28)" rx="2" ry="2" />
+<text text-anchor="" x="23.13" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Message::BEGIN@8 (13,536 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Message::BEGIN@8 (13,536 microseconds, 0.01%)</title><a xlink:href="Mojo-Message-pm-94-line.html#8" target="_top"><rect x="11.5" y="497" width="0.1" height="15.0" fill="rgb(230,136,28)" rx="2" ry="2" />
+<text text-anchor="" x="14.49" y="507.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::OO::clone (16,930 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::OO::clone (16,930 microseconds, 0.02%)</title><a xlink:href="Specio-OO-pm-248-line.html#259" target="_top"><rect x="13.6" y="545" width="0.1" height="15.0" fill="rgb(251,179,50)" rx="2" ry="2" />
+<text text-anchor="" x="16.57" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Library::add_type (22,510 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Library::add_type (22,510 microseconds, 0.02%)</title><a xlink:href="Type-Library-pm-503-line.html#224" target="_top"><rect x="16.4" y="577" width="0.2" height="15.0" fill="rgb(250,185,49)" rx="2" ry="2" />
+<text text-anchor="" x="19.40" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Collection::insert (10,543 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Collection::insert (10,543 microseconds, 0.01%)</title><a xlink:href="MongoDB-Collection-pm-1160-line.html#1537" target="_top"><rect x="1187.6" y="401" width="0.1" height="15.0" fill="rgb(236,162,34)" rx="2" ry="2" />
+<text text-anchor="" x="1190.62" y="411.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::with (10,537 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::with (10,537 microseconds, 0.01%)</title><a xlink:href="Moo-pm-492-line.html#56" target="_top"><rect x="21.9" y="561" width="0.2" height="15.0" fill="rgb(235,159,33)" rx="2" ry="2" />
+<text text-anchor="" x="24.94" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Params::ValidationCompiler::Compiler::_compile_named_args_check (13,577 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Params::ValidationCompiler::Compiler::_compile_named_args_check (13,577 microseconds, 0.01%)</title><a xlink:href="Params-ValidationCompiler-Compiler-pm-451-line.html#140" target="_top"><rect x="14.9" y="561" width="0.2" height="15.0" fill="rgb(239,165,37)" rx="2" ry="2" />
+<text text-anchor="" x="17.93" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Params::ValidationCompiler::Compiler::subref (23,089 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Params::ValidationCompiler::Compiler::subref (23,089 microseconds, 0.02%)</title><a xlink:href="Params-ValidationCompiler-Compiler-pm-451-line.html#99" target="_top"><rect x="14.8" y="593" width="0.3" height="15.0" fill="rgb(245,165,44)" rx="2" ry="2" />
+<text text-anchor="" x="17.84" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Command::daemon::run (110,584,942 microseconds, 98.62%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Command::daemon::run (110,584,942 microseconds, 98.62%)</title><a xlink:href="Mojolicious-Command-daemon-pm-1328-line.html#10" target="_top"><rect x="24.6" y="657" width="1163.8" height="15.0" fill="rgb(243,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="27.58" y="667.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >Mojolicious::Command::daemon::run</text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Home::list_files (11,428 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Home::list_files (11,428 microseconds, 0.01%)</title><a xlink:href="Mojo-Home-pm-89-line.html#39" target="_top"><rect x="1188.4" y="657" width="0.1" height="15.0" fill="rgb(244,136,43)" rx="2" ry="2" />
+<text text-anchor="" x="1191.37" y="667.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DateTime::BEGIN@17 (14,668 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DateTime::BEGIN@17 (14,668 microseconds, 0.01%)</title><a xlink:href="DateTime-pm-223-line.html#17" target="_top"><rect x="14.6" y="609" width="0.1" height="15.0" fill="rgb(238,94,36)" rx="2" ry="2" />
+<text text-anchor="" x="17.58" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Renderer::render (52,962 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Renderer::render (52,962 microseconds, 0.05%)</title><a xlink:href="Mojolicious-Renderer-pm-204-line.html#74" target="_top"><rect x="1185.1" y="129" width="0.6" height="15.0" fill="rgb(243,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1188.10" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Library::BEGIN@14 (9,905 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Library::BEGIN@14 (9,905 microseconds, 0.01%)</title><a xlink:href="Type-Library-pm-503-line.html#14" target="_top"><rect x="15.7" y="577" width="0.1" height="15.0" fill="rgb(243,185,42)" rx="2" ry="2" />
+<text text-anchor="" x="18.67" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Server::Daemon::_read (800,462 microseconds, 0.71%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Server::Daemon::_read (800,462 microseconds, 0.71%)</title><a xlink:href="Mojo-Server-Daemon-pm-197-line.html#202" target="_top"><rect x="1179.7" y="497" width="8.4" height="15.0" fill="rgb(241,136,40)" rx="2" ry="2" />
+<text text-anchor="" x="1182.69" y="507.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DateTime::BEGIN@15 (38,057 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DateTime::BEGIN@15 (38,057 microseconds, 0.03%)</title><a xlink:href="DateTime-pm-223-line.html#15" target="_top"><rect x="13.9" y="609" width="0.4" height="15.0" fill="rgb(241,94,40)" rx="2" ry="2" />
+<text text-anchor="" x="16.85" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_Query::_command_query (34,145 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_Query::_command_query (34,145 microseconds, 0.03%)</title><a xlink:href="MongoDB-Op-_Query-pm-1014-line.html#149" target="_top"><rect x="1187.7" y="305" width="0.4" height="15.0" fill="rgb(245,162,44)" rx="2" ry="2" />
+<text text-anchor="" x="1190.73" y="315.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Loader::BEGIN@8 (62,859 microseconds, 0.06%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Loader::BEGIN@8 (62,859 microseconds, 0.06%)</title><a xlink:href="Mojo-Loader-pm-35-line.html#8" target="_top"><rect x="1189.2" y="641" width="0.6" height="15.0" fill="rgb(230,136,28)" rx="2" ry="2" />
+<text text-anchor="" x="1192.18" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_BatchInsert::BEGIN@29 (15,208 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_BatchInsert::BEGIN@29 (15,208 microseconds, 0.01%)</title><a xlink:href="MongoDB-Op-_BatchInsert-pm-1163-line.html#29" target="_top"><rect x="21.9" y="577" width="0.2" height="15.0" fill="rgb(233,162,31)" rx="2" ry="2" />
+<text text-anchor="" x="24.89" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Cursor::result (34,896 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Cursor::result (34,896 microseconds, 0.03%)</title><a xlink:href="(eval 747)[Sub-Quote-pm-3]-1019-line.html#6" target="_top"><rect x="1187.7" y="385" width="0.4" height="15.0" fill="rgb(228,162,25)" rx="2" ry="2" />
+<text text-anchor="" x="1190.73" y="395.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::BEGIN@5 (1,169,439 microseconds, 1.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::BEGIN@5 (1,169,439 microseconds, 1.04%)</title><a xlink:href="Site1-pm-86-line.html#5" target="_top"><rect x="11.9" y="657" width="12.3" height="15.0" fill="rgb(235,149,33)" rx="2" ry="2" />
+<text text-anchor="" x="14.93" y="667.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Plugins::emit_chain (388,694 microseconds, 0.35%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Plugins::emit_chain (388,694 microseconds, 0.35%)</title><a xlink:href="Mojolicious-Plugins-pm-203-line.html#9" target="_top"><rect x="1179.9" y="225" width="4.1" height="15.0" fill="rgb(247,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="1182.86" y="235.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Pod::Text::BEGIN@34 (16,233 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Pod::Text::BEGIN@34 (16,233 microseconds, 0.01%)</title><a xlink:href="Pod-Text-pm-75-line.html#34" target="_top"><rect x="1188.9" y="625" width="0.2" height="15.0" fill="rgb(241,212,39)" rx="2" ry="2" />
+<text text-anchor="" x="1191.94" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Types::Standard::__ANON__[/home/debian/perl5/lib/perl5/Types/Standard.pm:81] (15,318 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Types::Standard::__ANON__[/home/debian/perl5/lib/perl5/Types/Standard.pm:81] (15,318 microseconds, 0.01%)</title><a xlink:href="Types-Standard-pm-543-line.html#42" target="_top"><rect x="16.1" y="577" width="0.2" height="15.0" fill="rgb(238,185,37)" rx="2" ry="2" />
+<text text-anchor="" x="19.10" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::Declare::object_can_type (12,481 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::Declare::object_can_type (12,481 microseconds, 0.01%)</title><a xlink:href="Specio-Declare-pm-246-line.html#112" target="_top"><rect x="13.3" y="577" width="0.1" height="15.0" fill="rgb(250,179,49)" rx="2" ry="2" />
+<text text-anchor="" x="16.28" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::__ANON__[/home/debian/perl5/lib/perl5/Type/Tiny.pm:68] (10,031 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::__ANON__[/home/debian/perl5/lib/perl5/Type/Tiny.pm:68] (10,031 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-pm-506-line.html#60" target="_top"><rect x="17.1" y="625" width="0.1" height="15.0" fill="rgb(244,185,43)" rx="2" ry="2" />
+<text text-anchor="" x="20.14" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Plugins::emit_chain (152,054 microseconds, 0.14%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Plugins::emit_chain (152,054 microseconds, 0.14%)</title><a xlink:href="Mojolicious-Plugins-pm-203-line.html#9" target="_top"><rect x="1184.1" y="209" width="1.6" height="15.0" fill="rgb(247,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="1187.05" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::IOLoop::Stream::__ANON__[/home/debian/perl5/lib/perl5/Mojo/IOLoop/Stream.pm:46] (819,525 microseconds, 0.73%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::IOLoop::Stream::__ANON__[/home/debian/perl5/lib/perl5/Mojo/IOLoop/Stream.pm:46] (819,525 microseconds, 0.73%)</title><a xlink:href="Mojo-IOLoop-Stream-pm-185-line.html#46" target="_top"><rect x="1179.6" y="561" width="8.6" height="15.0" fill="rgb(236,136,34)" rx="2" ry="2" />
+<text text-anchor="" x="1182.59" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Collection::BEGIN@42 (9,636 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Collection::BEGIN@42 (9,636 microseconds, 0.01%)</title><a xlink:href="MongoDB-Collection-pm-1160-line.html#42" target="_top"><rect x="23.9" y="625" width="0.1" height="15.0" fill="rgb(243,162,42)" rx="2" ry="2" />
+<text text-anchor="" x="26.85" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::EventEmitter::emit (623,633 microseconds, 0.56%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::EventEmitter::emit (623,633 microseconds, 0.56%)</title><a xlink:href="Mojo-EventEmitter-pm-66-line.html#10" target="_top"><rect x="1179.8" y="465" width="6.5" height="15.0" fill="rgb(237,136,35)" rx="2" ry="2" />
+<text text-anchor="" x="1182.77" y="475.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Command::BEGIN@9 (65,962 microseconds, 0.06%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Command::BEGIN@9 (65,962 microseconds, 0.06%)</title><a xlink:href="Mojolicious-Command-pm-31-line.html#9" target="_top"><rect x="1189.1" y="657" width="0.7" height="15.0" fill="rgb(228,136,26)" rx="2" ry="2" />
+<text text-anchor="" x="1192.15" y="667.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Collection::new (14,672 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Collection::new (14,672 microseconds, 0.01%)</title><a xlink:href="(eval 1032)[Sub-Quote-pm-3]-1372-line.html#11" target="_top"><rect x="1184.8" y="129" width="0.2" height="15.0" fill="rgb(235,162,33)" rx="2" ry="2" />
+<text text-anchor="" x="1187.81" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::BEGIN@37 (73,465 microseconds, 0.07%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::BEGIN@37 (73,465 microseconds, 0.07%)</title><a xlink:href="MongoDB-MongoClient-pm-987-line.html#37" target="_top"><rect x="19.0" y="625" width="0.8" height="15.0" fill="rgb(235,162,33)" rx="2" ry="2" />
+<text text-anchor="" x="22.03" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::Union::_build_parent (14,849 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::Union::_build_parent (14,849 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-Union-pm-935-line.html#146" target="_top"><rect x="16.5" y="465" width="0.1" height="15.0" fill="rgb(241,185,39)" rx="2" ry="2" />
+<text text-anchor="" x="19.48" y="475.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Collection::BEGIN@33 (84,473 microseconds, 0.08%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Collection::BEGIN@33 (84,473 microseconds, 0.08%)</title><a xlink:href="MongoDB-Collection-pm-1160-line.html#33" target="_top"><rect x="22.6" y="625" width="0.9" height="15.0" fill="rgb(242,162,41)" rx="2" ry="2" />
+<text text-anchor="" x="25.57" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Plugin::EPRenderer::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Plugin/EPRenderer.pm:43] (52,251 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Plugin::EPRenderer::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Plugin/EPRenderer.pm:43] (52,251 microseconds, 0.05%)</title><a xlink:href="Mojolicious-Plugin-EPRenderer-pm-1322-line.html#22" target="_top"><rect x="1185.1" y="97" width="0.6" height="15.0" fill="rgb(239,136,37)" rx="2" ry="2" />
+<text text-anchor="" x="1188.10" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Module::Runtime::use_package_optimistically (15,809 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Module::Runtime::use_package_optimistically (15,809 microseconds, 0.01%)</title><a xlink:href="Module-Runtime-pm-227-line.html#378" target="_top"><rect x="17.7" y="529" width="0.2" height="15.0" fill="rgb(243,156,42)" rx="2" ry="2" />
+<text text-anchor="" x="20.70" y="539.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DateTime::Duration::BEGIN@12 (146,918 microseconds, 0.13%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DateTime::Duration::BEGIN@12 (146,918 microseconds, 0.13%)</title><a xlink:href="DateTime-Duration-pm-238-line.html#12" target="_top"><rect x="12.2" y="593" width="1.6" height="15.0" fill="rgb(246,94,45)" rx="2" ry="2" />
+<text text-anchor="" x="15.21" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::_build_compiled_check (15,195 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::_build_compiled_check (15,195 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-pm-506-line.html#358" target="_top"><rect x="16.5" y="513" width="0.1" height="15.0" fill="rgb(239,185,37)" rx="2" ry="2" />
+<text text-anchor="" x="19.48" y="523.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::continue (178,812 microseconds, 0.16%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::continue (178,812 microseconds, 0.16%)</title><a xlink:href="Mojolicious-Routes-pm-206-line.html#20" target="_top"><rect x="1184.0" y="257" width="1.9" height="15.0" fill="rgb(244,136,43)" rx="2" ry="2" />
+<text text-anchor="" x="1187.04" y="267.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Server::__ANON__[/home/debian/perl5/lib/perl5/Mojo/Server.pm:68] (604,918 microseconds, 0.54%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Server::__ANON__[/home/debian/perl5/lib/perl5/Mojo/Server.pm:68] (604,918 microseconds, 0.54%)</title><a xlink:href="Mojo-Server-pm-65-line.html#68" target="_top"><rect x="1179.8" y="417" width="6.3" height="15.0" fill="rgb(244,136,43)" rx="2" ry="2" />
+<text text-anchor="" x="1182.78" y="427.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_BulkWrite::BEGIN@29 (19,825 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_BulkWrite::BEGIN@29 (19,825 microseconds, 0.02%)</title><a xlink:href="MongoDB-Op-_BulkWrite-pm-1179-line.html#29" target="_top"><rect x="22.6" y="609" width="0.2" height="15.0" fill="rgb(233,162,31)" rx="2" ry="2" />
+<text text-anchor="" x="25.61" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::GridFSBucket::BEGIN@24 (13,454 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::GridFSBucket::BEGIN@24 (13,454 microseconds, 0.01%)</title><a xlink:href="MongoDB-GridFSBucket-pm-1126-line.html#24" target="_top"><rect x="20.8" y="609" width="0.1" height="15.0" fill="rgb(242,162,40)" rx="2" ry="2" />
+<text text-anchor="" x="23.75" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::with (17,604 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::with (17,604 microseconds, 0.02%)</title><a xlink:href="Moo-pm-492-line.html#56" target="_top"><rect x="18.1" y="577" width="0.2" height="15.0" fill="rgb(235,159,33)" rx="2" ry="2" />
+<text text-anchor="" x="21.15" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::IOLoop::BEGIN@7 (54,865 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::IOLoop::BEGIN@7 (54,865 microseconds, 0.05%)</title><a xlink:href="Mojo-IOLoop-pm-148-line.html#7" target="_top"><rect x="10.5" y="561" width="0.6" height="15.0" fill="rgb(232,136,29)" rx="2" ry="2" />
+<text text-anchor="" x="13.47" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Controller::rendered (14,525 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Controller::rendered (14,525 microseconds, 0.01%)</title><a xlink:href="Mojolicious-Controller-pm-201-line.html#192" target="_top"><rect x="1184.7" y="129" width="0.1" height="15.0" fill="rgb(248,136,47)" rx="2" ry="2" />
+<text text-anchor="" x="1187.65" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::has (15,192 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::has (15,192 microseconds, 0.01%)</title><a xlink:href="Moo-pm-492-line.html#61" target="_top"><rect x="19.3" y="593" width="0.1" height="15.0" fill="rgb(230,159,28)" rx="2" ry="2" />
+<text text-anchor="" x="22.25" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Renderer::warmup (11,745 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Renderer::warmup (11,745 microseconds, 0.01%)</title><a xlink:href="Mojolicious-Renderer-pm-204-line.html#178" target="_top"><rect x="1188.4" y="673" width="0.1" height="15.0" fill="rgb(243,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1191.36" y="683.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Message::BEGIN@6 (10,108 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Message::BEGIN@6 (10,108 microseconds, 0.01%)</title><a xlink:href="Mojo-Message-pm-94-line.html#6" target="_top"><rect x="11.3" y="497" width="0.1" height="15.0" fill="rgb(233,136,31)" rx="2" ry="2" />
+<text text-anchor="" x="14.31" y="507.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::IOLoop::start (110,582,733 microseconds, 98.62%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::IOLoop::start (110,582,733 microseconds, 98.62%)</title><a xlink:href="Mojo-IOLoop-pm-148-line.html#129" target="_top"><rect x="24.6" y="625" width="1163.7" height="15.0" fill="rgb(239,136,37)" rx="2" ry="2" />
+<text text-anchor="" x="27.58" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >Mojo::IOLoop::start</text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Message::parse (46,560 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Message::parse (46,560 microseconds, 0.04%)</title><a xlink:href="Mojo-Message-pm-94-line.html#144" target="_top"><rect x="1186.3" y="449" width="0.5" height="15.0" fill="rgb(243,136,42)" rx="2" ry="2" />
+<text text-anchor="" x="1189.35" y="459.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::_Utils::_load_module (15,902 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::_Utils::_load_module (15,902 microseconds, 0.01%)</title><a xlink:href="Moo-_Utils-pm-495-line.html#48" target="_top"><rect x="17.7" y="545" width="0.2" height="15.0" fill="rgb(237,159,35)" rx="2" ry="2" />
+<text text-anchor="" x="20.70" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Try::Tiny::try (10,697 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Try::Tiny::try (10,697 microseconds, 0.01%)</title><a xlink:href="Try-Tiny-pm-228-line.html#25" target="_top"><rect x="1187.4" y="273" width="0.1" height="15.0" fill="rgb(243,174,42)" rx="2" ry="2" />
+<text text-anchor="" x="1190.43" y="283.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::IOLoop::Client::BEGIN@5 (19,543 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::IOLoop::Client::BEGIN@5 (19,543 microseconds, 0.02%)</title><a xlink:href="Mojo-IOLoop-Client-pm-149-line.html#5" target="_top"><rect x="10.8" y="545" width="0.2" height="15.0" fill="rgb(235,136,33)" rx="2" ry="2" />
+<text text-anchor="" x="13.84" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::IndexView::BEGIN@27 (60,876 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::IndexView::BEGIN@27 (60,876 microseconds, 0.05%)</title><a xlink:href="MongoDB-IndexView-pm-1161-line.html#27" target="_top"><rect x="21.8" y="609" width="0.6" height="15.0" fill="rgb(236,162,35)" rx="2" ry="2" />
+<text text-anchor="" x="24.75" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Collection::delete_many (29,380 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Collection::delete_many (29,380 microseconds, 0.03%)</title><a xlink:href="MongoDB-Collection-pm-1160-line.html#464" target="_top"><rect x="1187.2" y="401" width="0.3" height="15.0" fill="rgb(252,162,52)" rx="2" ry="2" />
+<text text-anchor="" x="1190.23" y="411.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Transaction::HTTP::_write (15,821 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Transaction::HTTP::_write (15,821 microseconds, 0.01%)</title><a xlink:href="Mojo-Transaction-HTTP-pm-91-line.html#124" target="_top"><rect x="1186.2" y="401" width="0.1" height="15.0" fill="rgb(240,136,38)" rx="2" ry="2" />
+<text text-anchor="" x="1189.15" y="411.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::continue (577,475 microseconds, 0.52%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::continue (577,475 microseconds, 0.52%)</title><a xlink:href="Mojolicious-Routes-pm-206-line.html#20" target="_top"><rect x="1179.8" y="273" width="6.1" height="15.0" fill="rgb(244,136,43)" rx="2" ry="2" />
+<text text-anchor="" x="1182.84" y="283.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::BEGIN@2 (165,594 microseconds, 0.15%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::BEGIN@2 (165,594 microseconds, 0.15%)</title><a xlink:href="Site1-pm-86-line.html#2" target="_top"><rect x="10.0" y="657" width="1.8" height="15.0" fill="rgb(240,149,39)" rx="2" ry="2" />
+<text text-anchor="" x="13.02" y="667.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::compiled_check (15,222 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::compiled_check (15,222 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-pm-506-line.html#278" target="_top"><rect x="16.5" y="529" width="0.1" height="15.0" fill="rgb(239,185,37)" rx="2" ry="2" />
+<text text-anchor="" x="19.48" y="539.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_Update::BEGIN@27 (9,864 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_Update::BEGIN@27 (9,864 microseconds, 0.01%)</title><a xlink:href="MongoDB-Op-_Update-pm-1193-line.html#27" target="_top"><rect x="23.0" y="593" width="0.1" height="15.0" fill="rgb(236,162,35)" rx="2" ry="2" />
+<text text-anchor="" x="26.01" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Database::new (9,733 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Database::new (9,733 microseconds, 0.01%)</title><a xlink:href="(eval 1028)[Sub-Quote-pm-3]-1368-line.html#11" target="_top"><rect x="1185.0" y="129" width="0.1" height="15.0" fill="rgb(235,162,33)" rx="2" ry="2" />
+<text text-anchor="" x="1187.97" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DBIx::Connector::dbh (13,988 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DBIx::Connector::dbh (13,988 microseconds, 0.01%)</title><a xlink:href="DBIx-Connector-pm-214-line.html#74" target="_top"><rect x="1183.5" y="161" width="0.1" height="15.0" fill="rgb(234,162,32)" rx="2" ry="2" />
+<text text-anchor="" x="1186.50" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::connect (44,787 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::connect (44,787 microseconds, 0.04%)</title><a xlink:href="MongoDB-pm-219-line.html#75" target="_top"><rect x="1184.2" y="113" width="0.4" height="15.0" fill="rgb(241,162,39)" rx="2" ry="2" />
+<text text-anchor="" x="1187.16" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Database::BEGIN@28 (49,669 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Database::BEGIN@28 (49,669 microseconds, 0.04%)</title><a xlink:href="MongoDB-Database-pm-1121-line.html#28" target="_top"><rect x="20.7" y="625" width="0.5" height="15.0" fill="rgb(235,162,33)" rx="2" ry="2" />
+<text text-anchor="" x="23.73" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Eval::TypeTiny::Sandbox::__ANON__[(eval 0)[/home/debian/perl5/lib/perl5/Eval/TypeTiny.pm:24]:10] (12,835 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Eval::TypeTiny::Sandbox::__ANON__[(eval 0)[/home/debian/perl5/lib/perl5/Eval/TypeTiny.pm:24]:10] (12,835 microseconds, 0.01%)</title><rect x="15.4" y="593" width="0.2" height="15.0" fill="rgb(244,114,43)" rx="2" ry="2" />
+<text text-anchor="" x="18.43" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Types::BEGIN@63 (40,756 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Types::BEGIN@63 (40,756 microseconds, 0.04%)</title><a xlink:href="MongoDB-_Types-pm-502-line.html#63" target="_top"><rect x="15.8" y="593" width="0.5" height="15.0" fill="rgb(239,162,37)" rx="2" ry="2" />
+<text text-anchor="" x="18.83" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::new (22,869 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::new (22,869 microseconds, 0.02%)</title><a xlink:href="Mojolicious-pm-87-line.html#137" target="_top"><rect x="24.3" y="673" width="0.3" height="15.0" fill="rgb(235,136,33)" rx="2" ry="2" />
+<text text-anchor="" x="27.34" y="683.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::Union::has_parent (14,867 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::Union::has_parent (14,867 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-Union-pm-935-line.html#136" target="_top"><rect x="16.5" y="497" width="0.1" height="15.0" fill="rgb(241,185,39)" rx="2" ry="2" />
+<text text-anchor="" x="19.48" y="507.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::BEGIN@32 (503,142 microseconds, 0.45%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::BEGIN@32 (503,142 microseconds, 0.45%)</title><a xlink:href="MongoDB-pm-219-line.html#32" target="_top"><rect x="12.0" y="641" width="5.2" height="15.0" fill="rgb(244,162,43)" rx="2" ry="2" />
+<text text-anchor="" x="14.95" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Plugins::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Plugins.pm:15] (388,445 microseconds, 0.35%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Plugins::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Plugins.pm:15] (388,445 microseconds, 0.35%)</title><a xlink:href="Mojolicious-Plugins-pm-203-line.html#15" target="_top"><rect x="1179.9" y="209" width="4.1" height="15.0" fill="rgb(239,136,37)" rx="2" ry="2" />
+<text text-anchor="" x="1182.87" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::BEGIN@10 (84,216 microseconds, 0.08%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::BEGIN@10 (84,216 microseconds, 0.08%)</title><a xlink:href="Mojo-pm-88-line.html#10" target="_top"><rect x="10.3" y="593" width="0.8" height="15.0" fill="rgb(232,136,30)" rx="2" ry="2" />
+<text text-anchor="" x="13.25" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Plugins::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Plugins.pm:15] (151,885 microseconds, 0.14%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Plugins::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Plugins.pm:15] (151,885 microseconds, 0.14%)</title><a xlink:href="Mojolicious-Plugins-pm-203-line.html#15" target="_top"><rect x="1184.1" y="193" width="1.6" height="15.0" fill="rgb(239,136,37)" rx="2" ry="2" />
+<text text-anchor="" x="1187.06" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_BulkWrite::BEGIN@32 (20,507 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_BulkWrite::BEGIN@32 (20,507 microseconds, 0.02%)</title><a xlink:href="MongoDB-Op-_BulkWrite-pm-1179-line.html#32" target="_top"><rect x="23.0" y="609" width="0.2" height="15.0" fill="rgb(244,162,43)" rx="2" ry="2" />
+<text text-anchor="" x="25.99" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::Match::_match (10,132 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::Match::_match (10,132 microseconds, 0.01%)</title><a xlink:href="Mojolicious-Routes-Match-pm-202-line.html#38" target="_top"><rect x="1186.0" y="225" width="0.1" height="15.0" fill="rgb(242,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1188.96" y="235.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Base::import (165,580 microseconds, 0.15%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Base::import (165,580 microseconds, 0.15%)</title><a xlink:href="Mojo-Base-pm-19-line.html#64" target="_top"><rect x="10.0" y="641" width="1.8" height="15.0" fill="rgb(238,136,36)" rx="2" ry="2" />
+<text text-anchor="" x="13.02" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::XS::get_coderef_for (9,735 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::XS::get_coderef_for (9,735 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-XS-pm-508-line.html#42" target="_top"><rect x="17.1" y="593" width="0.1" height="15.0" fill="rgb(242,185,41)" rx="2" ry="2" />
+<text text-anchor="" x="20.14" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::IOLoop::Stream::_read (814,678 microseconds, 0.73%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::IOLoop::Stream::_read (814,678 microseconds, 0.73%)</title><a xlink:href="Mojo-IOLoop-Stream-pm-185-line.html#91" target="_top"><rect x="1179.6" y="545" width="8.6" height="15.0" fill="rgb(241,136,40)" rx="2" ry="2" />
+<text text-anchor="" x="1182.60" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::Role::apply_roles_to_package (10,518 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::Role::apply_roles_to_package (10,518 microseconds, 0.01%)</title><a xlink:href="Moo-Role-pm-997-line.html#272" target="_top"><rect x="21.9" y="545" width="0.2" height="15.0" fill="rgb(248,159,47)" rx="2" ry="2" />
+<text text-anchor="" x="24.94" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Database::BEGIN@29 (10,783 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Database::BEGIN@29 (10,783 microseconds, 0.01%)</title><a xlink:href="MongoDB-Database-pm-1121-line.html#29" target="_top"><rect x="21.2" y="625" width="0.2" height="15.0" fill="rgb(233,162,31)" rx="2" ry="2" />
+<text text-anchor="" x="24.25" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Database::get_collection (14,982 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Database::get_collection (14,982 microseconds, 0.01%)</title><a xlink:href="MongoDB-Database-pm-1121-line.html#251" target="_top"><rect x="1184.8" y="145" width="0.2" height="15.0" fill="rgb(247,162,46)" rx="2" ry="2" />
+<text text-anchor="" x="1187.81" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Params::ValidationCompiler::validation_for (23,285 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Params::ValidationCompiler::validation_for (23,285 microseconds, 0.02%)</title><a xlink:href="Params-ValidationCompiler-pm-450-line.html#14" target="_top"><rect x="14.8" y="609" width="0.3" height="15.0" fill="rgb(242,165,41)" rx="2" ry="2" />
+<text text-anchor="" x="17.84" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DBIx::Connector::BEGIN@6 (11,070 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DBIx::Connector::BEGIN@6 (11,070 microseconds, 0.01%)</title><a xlink:href="DBIx-Connector-pm-214-line.html#6" target="_top"><rect x="11.8" y="641" width="0.1" height="15.0" fill="rgb(233,162,31)" rx="2" ry="2" />
+<text text-anchor="" x="14.78" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::Role::apply_roles_to_package (17,580 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::Role::apply_roles_to_package (17,580 microseconds, 0.02%)</title><a xlink:href="Moo-Role-pm-997-line.html#272" target="_top"><rect x="18.1" y="561" width="0.2" height="15.0" fill="rgb(248,159,47)" rx="2" ry="2" />
+<text text-anchor="" x="21.15" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::send_read_op (34,470 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::send_read_op (34,470 microseconds, 0.03%)</title><a xlink:href="MongoDB-MongoClient-pm-987-line.html#1406" target="_top"><rect x="1187.7" y="337" width="0.4" height="15.0" fill="rgb(242,162,41)" rx="2" ry="2" />
+<text text-anchor="" x="1190.73" y="347.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DBI::install_driver (9,976 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DBI::install_driver (9,976 microseconds, 0.01%)</title><a xlink:href="DBI-pm-215-line.html#748" target="_top"><rect x="1183.2" y="113" width="0.1" height="15.0" fill="rgb(238,162,37)" rx="2" ry="2" />
+<text text-anchor="" x="1186.23" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Transaction::HTTP::server_write (15,851 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Transaction::HTTP::server_write (15,851 microseconds, 0.01%)</title><a xlink:href="Mojo-Transaction-HTTP-pm-91-line.html#64" target="_top"><rect x="1186.2" y="417" width="0.1" height="15.0" fill="rgb(240,136,38)" rx="2" ry="2" />
+<text text-anchor="" x="1189.15" y="427.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Module::Runtime::use_package_optimistically (16,186 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Module::Runtime::use_package_optimistically (16,186 microseconds, 0.01%)</title><a xlink:href="Module-Runtime-pm-227-line.html#378" target="_top"><rect x="18.2" y="529" width="0.1" height="15.0" fill="rgb(243,156,42)" rx="2" ry="2" />
+<text text-anchor="" x="21.15" y="539.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Server::Daemon::_write (16,368 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Server::Daemon::_write (16,368 microseconds, 0.01%)</title><a xlink:href="Mojo-Server-Daemon-pm-197-line.html#220" target="_top"><rect x="1186.1" y="433" width="0.2" height="15.0" fill="rgb(240,136,38)" rx="2" ry="2" />
+<text text-anchor="" x="1189.14" y="443.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('IO::Poll::_poll (109,709,902 microseconds, 97.84%)')" onmouseout="c()" onclick="zoom(this)">
+<title>IO::Poll::_poll (109,709,902 microseconds, 97.84%)</title><a xlink:href="IO-Poll-pm-58-line.html#IO__Poll___poll" target="_top"><rect x="24.8" y="577" width="1154.6" height="15.0" fill="rgb(229,163,26)" rx="2" ry="2" />
+<text text-anchor="" x="27.85" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >IO::Poll::_poll</text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::_selection_timeout (13,024 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::_selection_timeout (13,024 microseconds, 0.01%)</title><a xlink:href="MongoDB-_Topology-pm-1033-line.html#673" target="_top"><rect x="1187.4" y="353" width="0.1" height="15.0" fill="rgb(234,162,32)" rx="2" ry="2" />
+<text text-anchor="" x="1190.41" y="363.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::AUTOLOAD (47,128 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::AUTOLOAD (47,128 microseconds, 0.04%)</title><a xlink:href="Mojolicious-pm-87-line.html#48" target="_top"><rect x="1184.1" y="145" width="0.5" height="15.0" fill="rgb(225,136,22)" rx="2" ry="2" />
+<text text-anchor="" x="1187.14" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::__ANON__[/media/storage/debian/perlwork/mojowork/server/site1/script/../lib/Site1.pm:51] (44,832 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::__ANON__[/media/storage/debian/perlwork/mojowork/server/site1/script/../lib/Site1.pm:51] (44,832 microseconds, 0.04%)</title><a xlink:href="Site1-pm-86-line.html#49" target="_top"><rect x="1184.2" y="129" width="0.4" height="15.0" fill="rgb(240,149,39)" rx="2" ry="2" />
+<text text-anchor="" x="1187.16" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Method::Generate::Accessor::generate_method (16,064 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Method::Generate::Accessor::generate_method (16,064 microseconds, 0.01%)</title><a xlink:href="Method-Generate-Accessor-pm-977-line.html#43" target="_top"><rect x="21.4" y="593" width="0.2" height="15.0" fill="rgb(248,138,47)" rx="2" ry="2" />
+<text text-anchor="" x="24.41" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Link::CORE:sselect (29,238 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Link::CORE:sselect (29,238 microseconds, 0.03%)</title><a xlink:href="MongoDB-_Link-pm-1034-line.html#MongoDB___Link__CORE_sselect" target="_top"><rect x="1187.8" y="257" width="0.3" height="15.0" fill="rgb(241,162,39)" rx="2" ry="2" />
+<text text-anchor="" x="1190.77" y="267.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::QueryResult::BEGIN@27 (28,601 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::QueryResult::BEGIN@27 (28,601 microseconds, 0.03%)</title><a xlink:href="MongoDB-QueryResult-pm-992-line.html#27" target="_top"><rect x="17.6" y="593" width="0.3" height="15.0" fill="rgb(236,162,35)" rx="2" ry="2" />
+<text text-anchor="" x="20.58" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::UserAgent::BEGIN@6 (70,590 microseconds, 0.06%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::UserAgent::BEGIN@6 (70,590 microseconds, 0.06%)</title><a xlink:href="Mojo-UserAgent-pm-147-line.html#6" target="_top"><rect x="10.4" y="577" width="0.7" height="15.0" fill="rgb(233,136,31)" rx="2" ry="2" />
+<text text-anchor="" x="13.38" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::BEGIN@35 (231,244 microseconds, 0.21%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::BEGIN@35 (231,244 microseconds, 0.21%)</title><a xlink:href="MongoDB-pm-219-line.html#35" target="_top"><rect x="21.6" y="641" width="2.5" height="15.0" fill="rgb(239,162,37)" rx="2" ry="2" />
+<text text-anchor="" x="24.64" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Template::render (49,625 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Template::render (49,625 microseconds, 0.04%)</title><a xlink:href="Mojo-Template-pm-71-line.html#165" target="_top"><rect x="1185.1" y="49" width="0.5" height="15.0" fill="rgb(243,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1188.11" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Params::ValidationCompiler::Compiler::_compile (14,551 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Params::ValidationCompiler::Compiler::_compile (14,551 microseconds, 0.01%)</title><a xlink:href="Params-ValidationCompiler-Compiler-pm-451-line.html#129" target="_top"><rect x="14.9" y="577" width="0.2" height="15.0" fill="rgb(237,165,35)" rx="2" ry="2" />
+<text text-anchor="" x="17.93" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('utf8::SWASHNEW (16,290 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>utf8::SWASHNEW (16,290 microseconds, 0.01%)</title><a xlink:href="utf8_heavy-pl-62-line.html#30" target="_top"><rect x="1189.7" y="609" width="0.1" height="15.0" fill="rgb(235,124,33)" rx="2" ry="2" />
+<text text-anchor="" x="1192.66" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Message::headers (16,565 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Message::headers (16,565 microseconds, 0.01%)</title><a xlink:href="Mojo-Message-pm-94-line.html#131" target="_top"><rect x="1186.7" y="433" width="0.1" height="15.0" fill="rgb(238,136,36)" rx="2" ry="2" />
+<text text-anchor="" x="1189.66" y="443.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::dispatch (593,035 microseconds, 0.53%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::dispatch (593,035 microseconds, 0.53%)</title><a xlink:href="Mojolicious-Routes-pm-206-line.html#41" target="_top"><rect x="1179.8" y="289" width="6.3" height="15.0" fill="rgb(242,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1182.84" y="299.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::_load (24,031 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::_load (24,031 microseconds, 0.02%)</title><a xlink:href="Mojolicious-Routes-pm-206-line.html#177" target="_top"><rect x="1185.7" y="209" width="0.2" height="15.0" fill="rgb(243,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1188.66" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Util::CORE:match (21,879 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Util::CORE:match (21,879 microseconds, 0.02%)</title><a xlink:href="Mojo-Util-pm-38-line.html#Mojo__Util__CORE_match" target="_top"><rect x="1189.6" y="625" width="0.2" height="15.0" fill="rgb(242,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1192.60" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_Explain::BEGIN@27 (22,755 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_Explain::BEGIN@27 (22,755 microseconds, 0.02%)</title><a xlink:href="MongoDB-Op-_Explain-pm-1009-line.html#27" target="_top"><rect x="18.3" y="593" width="0.3" height="15.0" fill="rgb(236,162,35)" rx="2" ry="2" />
+<text text-anchor="" x="21.33" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::has (14,250 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::has (14,250 microseconds, 0.01%)</title><a xlink:href="Moo-pm-492-line.html#61" target="_top"><rect x="17.0" y="609" width="0.1" height="15.0" fill="rgb(230,159,28)" rx="2" ry="2" />
+<text text-anchor="" x="19.95" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::send_write_op (28,243 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::send_write_op (28,243 microseconds, 0.03%)</title><a xlink:href="MongoDB-MongoClient-pm-987-line.html#1385" target="_top"><rect x="1187.2" y="385" width="0.3" height="15.0" fill="rgb(242,162,41)" rx="2" ry="2" />
+<text text-anchor="" x="1190.25" y="395.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Transaction::BEGIN@5 (47,545 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Transaction::BEGIN@5 (47,545 microseconds, 0.04%)</title><a xlink:href="Mojo-Transaction-pm-92-line.html#5" target="_top"><rect x="11.2" y="545" width="0.5" height="15.0" fill="rgb(235,136,33)" rx="2" ry="2" />
+<text text-anchor="" x="14.18" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Transaction::HTTP::BEGIN@2 (52,303 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Transaction::HTTP::BEGIN@2 (52,303 microseconds, 0.05%)</title><a xlink:href="Mojo-Transaction-HTTP-pm-91-line.html#2" target="_top"><rect x="11.2" y="577" width="0.5" height="15.0" fill="rgb(240,136,39)" rx="2" ry="2" />
+<text text-anchor="" x="14.17" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious.pm:119] (151,857 microseconds, 0.14%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious.pm:119] (151,857 microseconds, 0.14%)</title><a xlink:href="Mojolicious-pm-87-line.html#119" target="_top"><rect x="1184.1" y="177" width="1.6" height="15.0" fill="rgb(246,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="1187.06" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Server::Daemon::__ANON__[/home/debian/perl5/lib/perl5/Mojo/Server/Daemon.pm:103] (623,549 microseconds, 0.56%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Server::Daemon::__ANON__[/home/debian/perl5/lib/perl5/Mojo/Server/Daemon.pm:103] (623,549 microseconds, 0.56%)</title><a xlink:href="Mojo-Server-Daemon-pm-197-line.html#83" target="_top"><rect x="1179.8" y="449" width="6.5" height="15.0" fill="rgb(242,136,40)" rx="2" ry="2" />
+<text text-anchor="" x="1182.77" y="459.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::IOLoop::Client::BEGIN@17 (33,018 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::IOLoop::Client::BEGIN@17 (33,018 microseconds, 0.03%)</title><a xlink:href="Mojo-IOLoop-Client-pm-149-line.html#17" target="_top"><rect x="10.5" y="545" width="0.3" height="15.0" fill="rgb(238,136,36)" rx="2" ry="2" />
+<text text-anchor="" x="13.49" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_Query::execute (34,226 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_Query::execute (34,226 microseconds, 0.03%)</title><a xlink:href="MongoDB-Op-_Query-pm-1014-line.html#138" target="_top"><rect x="1187.7" y="321" width="0.4" height="15.0" fill="rgb(240,162,38)" rx="2" ry="2" />
+<text text-anchor="" x="1190.73" y="331.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Reactor::Poll::one_tick (110,581,192 microseconds, 98.62%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Reactor::Poll::one_tick (110,581,192 microseconds, 98.62%)</title><a xlink:href="Mojo-Reactor-Poll-pm-188-line.html#30" target="_top"><rect x="24.6" y="593" width="1163.7" height="15.0" fill="rgb(236,136,34)" rx="2" ry="2" />
+<text text-anchor="" x="27.60" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >Mojo::Reactor::Poll::one_tick</text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Commands::BEGIN@2 (114,579 microseconds, 0.10%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Commands::BEGIN@2 (114,579 microseconds, 0.10%)</title><a xlink:href="Mojolicious-Commands-pm-18-line.html#2" target="_top"><rect x="1188.6" y="689" width="1.2" height="15.0" fill="rgb(240,136,39)" rx="2" ry="2" />
+<text text-anchor="" x="1191.64" y="699.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Cursor::BEGIN@29 (49,704 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Cursor::BEGIN@29 (49,704 microseconds, 0.04%)</title><a xlink:href="MongoDB-Cursor-pm-991-line.html#29" target="_top"><rect x="17.5" y="609" width="0.5" height="15.0" fill="rgb(233,162,31)" rx="2" ry="2" />
+<text text-anchor="" x="20.49" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::_class (24,642 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::_class (24,642 microseconds, 0.02%)</title><a xlink:href="Mojolicious-Routes-pm-206-line.html#97" target="_top"><rect x="1185.7" y="225" width="0.2" height="15.0" fill="rgb(240,136,38)" rx="2" ry="2" />
+<text text-anchor="" x="1188.65" y="235.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious.pm:120] (602,881 microseconds, 0.54%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious.pm:120] (602,881 microseconds, 0.54%)</title><a xlink:href="Mojolicious-pm-87-line.html#120" target="_top"><rect x="1179.8" y="321" width="6.3" height="15.0" fill="rgb(243,136,42)" rx="2" ry="2" />
+<text text-anchor="" x="1182.79" y="331.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::_initialize_link (12,279 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::_initialize_link (12,279 microseconds, 0.01%)</title><a xlink:href="MongoDB-_Topology-pm-1033-line.html#583" target="_top"><rect x="1187.4" y="289" width="0.1" height="15.0" fill="rgb(236,162,34)" rx="2" ry="2" />
+<text text-anchor="" x="1190.41" y="299.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Cursor::_build_result (34,674 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Cursor::_build_result (34,674 microseconds, 0.03%)</title><a xlink:href="MongoDB-Cursor-pm-991-line.html#69" target="_top"><rect x="1187.7" y="369" width="0.4" height="15.0" fill="rgb(228,162,25)" rx="2" ry="2" />
+<text text-anchor="" x="1190.73" y="379.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Library::add_type (14,958 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Library::add_type (14,958 microseconds, 0.01%)</title><a xlink:href="Type-Library-pm-503-line.html#224" target="_top"><rect x="16.1" y="561" width="0.2" height="15.0" fill="rgb(250,185,49)" rx="2" ry="2" />
+<text text-anchor="" x="19.10" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::new (44,766 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::new (44,766 microseconds, 0.04%)</title><a xlink:href="(eval 1018)[Sub-Quote-pm-3]-1357-line.html#14" target="_top"><rect x="1184.2" y="97" width="0.4" height="15.0" fill="rgb(235,162,33)" rx="2" ry="2" />
+<text text-anchor="" x="1187.16" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::OO::clone (11,670 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::OO::clone (11,670 microseconds, 0.01%)</title><a xlink:href="Specio-OO-pm-248-line.html#259" target="_top"><rect x="13.6" y="513" width="0.1" height="15.0" fill="rgb(251,179,50)" rx="2" ry="2" />
+<text text-anchor="" x="16.63" y="523.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Method::Generate::Accessor::generate_method (30,322 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Method::Generate::Accessor::generate_method (30,322 microseconds, 0.03%)</title><a xlink:href="Method-Generate-Accessor-pm-977-line.html#43" target="_top"><rect x="20.1" y="609" width="0.4" height="15.0" fill="rgb(248,138,47)" rx="2" ry="2" />
+<text text-anchor="" x="23.14" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::_action (152,135 microseconds, 0.14%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::_action (152,135 microseconds, 0.14%)</title><a xlink:href="Mojolicious-Routes-pm-206-line.html#87" target="_top"><rect x="1184.1" y="225" width="1.6" height="15.0" fill="rgb(247,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="1187.05" y="235.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Module::Runtime::use_package_optimistically (20,048 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Module::Runtime::use_package_optimistically (20,048 microseconds, 0.02%)</title><a xlink:href="Module-Runtime-pm-227-line.html#378" target="_top"><rect x="22.1" y="529" width="0.2" height="15.0" fill="rgb(243,156,42)" rx="2" ry="2" />
+<text text-anchor="" x="25.09" y="539.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Loader::load_class (23,953 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Loader::load_class (23,953 microseconds, 0.02%)</title><a xlink:href="Mojo-Loader-pm-35-line.html#43" target="_top"><rect x="1185.7" y="193" width="0.2" height="15.0" fill="rgb(240,136,38)" rx="2" ry="2" />
+<text text-anchor="" x="1188.66" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Module::Runtime::require_module (15,727 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Module::Runtime::require_module (15,727 microseconds, 0.01%)</title><a xlink:href="Module-Runtime-pm-227-line.html#303" target="_top"><rect x="17.7" y="513" width="0.2" height="15.0" fill="rgb(237,156,35)" rx="2" ry="2" />
+<text text-anchor="" x="20.70" y="523.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::is_subtype_of (10,007 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::is_subtype_of (10,007 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-pm-506-line.html#410" target="_top"><rect x="16.5" y="417" width="0.1" height="15.0" fill="rgb(242,185,41)" rx="2" ry="2" />
+<text text-anchor="" x="19.53" y="427.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Transaction::HTTP::server_read (679,786 microseconds, 0.61%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Transaction::HTTP::server_read (679,786 microseconds, 0.61%)</title><a xlink:href="Mojo-Transaction-HTTP-pm-91-line.html#53" target="_top"><rect x="1179.8" y="481" width="7.1" height="15.0" fill="rgb(241,136,40)" rx="2" ry="2" />
+<text text-anchor="" x="1182.76" y="491.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Template::render_file (50,383 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Template::render_file (50,383 microseconds, 0.04%)</title><a xlink:href="Mojo-Template-pm-71-line.html#167" target="_top"><rect x="1185.1" y="65" width="0.5" height="15.0" fill="rgb(237,136,35)" rx="2" ry="2" />
+<text text-anchor="" x="1188.11" y="75.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::check_address (12,309 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::check_address (12,309 microseconds, 0.01%)</title><a xlink:href="MongoDB-_Topology-pm-1033-line.html#248" target="_top"><rect x="1187.4" y="305" width="0.1" height="15.0" fill="rgb(237,162,35)" rx="2" ry="2" />
+<text text-anchor="" x="1190.41" y="315.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Sub::Defer::undefer_sub (10,579 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Sub::Defer::undefer_sub (10,579 microseconds, 0.01%)</title><a xlink:href="Sub-Defer-pm-972-line.html#17" target="_top"><rect x="1184.5" y="81" width="0.1" height="15.0" fill="rgb(228,164,25)" rx="2" ry="2" />
+<text text-anchor="" x="1187.52" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Plugins::emit_chain (603,531 microseconds, 0.54%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Plugins::emit_chain (603,531 microseconds, 0.54%)</title><a xlink:href="Mojolicious-Plugins-pm-203-line.html#9" target="_top"><rect x="1179.8" y="385" width="6.3" height="15.0" fill="rgb(247,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="1182.78" y="395.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::BEGIN@42 (13,864 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::BEGIN@42 (13,864 microseconds, 0.01%)</title><a xlink:href="MongoDB-_Topology-pm-1033-line.html#42" target="_top"><rect x="19.4" y="609" width="0.2" height="15.0" fill="rgb(243,162,42)" rx="2" ry="2" />
+<text text-anchor="" x="22.43" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DateTime::Locale::BEGIN@12 (11,025 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DateTime::Locale::BEGIN@12 (11,025 microseconds, 0.01%)</title><a xlink:href="DateTime-Locale-pm-463-line.html#12" target="_top"><rect x="14.1" y="593" width="0.1" height="15.0" fill="rgb(246,94,45)" rx="2" ry="2" />
+<text text-anchor="" x="17.12" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Controller::on (14,939 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Controller::on (14,939 microseconds, 0.01%)</title><a xlink:href="Mojolicious-Controller-pm-201-line.html#138" target="_top"><rect x="1184.7" y="145" width="0.1" height="15.0" fill="rgb(246,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="1187.65" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Base::import (140,140 microseconds, 0.12%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Base::import (140,140 microseconds, 0.12%)</title><a xlink:href="Mojo-Base-pm-19-line.html#64" target="_top"><rect x="10.2" y="609" width="1.5" height="15.0" fill="rgb(238,136,36)" rx="2" ry="2" />
+<text text-anchor="" x="13.25" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::_action (388,825 microseconds, 0.35%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::_action (388,825 microseconds, 0.35%)</title><a xlink:href="Mojolicious-Routes-pm-206-line.html#87" target="_top"><rect x="1179.9" y="241" width="4.1" height="15.0" fill="rgb(247,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="1182.86" y="251.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Collection::BEGIN@31 (11,601 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Collection::BEGIN@31 (11,601 microseconds, 0.01%)</title><a xlink:href="MongoDB-Collection-pm-1160-line.html#31" target="_top"><rect x="22.4" y="625" width="0.2" height="15.0" fill="rgb(228,162,26)" rx="2" ry="2" />
+<text text-anchor="" x="25.45" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::GridFSBucket::BEGIN@25 (22,412 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::GridFSBucket::BEGIN@25 (22,412 microseconds, 0.02%)</title><a xlink:href="MongoDB-GridFSBucket-pm-1126-line.html#25" target="_top"><rect x="20.9" y="609" width="0.2" height="15.0" fill="rgb(240,162,38)" rx="2" ry="2" />
+<text text-anchor="" x="23.89" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::Role::apply_roles_to_package (21,816 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::Role::apply_roles_to_package (21,816 microseconds, 0.02%)</title><a xlink:href="Moo-Role-pm-997-line.html#272" target="_top"><rect x="22.1" y="561" width="0.2" height="15.0" fill="rgb(248,159,47)" rx="2" ry="2" />
+<text text-anchor="" x="25.09" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::Controller::Walkworld::BEGIN@11 (17,263 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::Controller::Walkworld::BEGIN@11 (17,263 microseconds, 0.02%)</title><a xlink:href="Walkworld-pm-1347-line.html#11" target="_top"><rect x="1185.7" y="177" width="0.2" height="15.0" fill="rgb(231,149,28)" rx="2" ry="2" />
+<text text-anchor="" x="1188.72" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Message::Request::parse (55,409 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Message::Request::parse (55,409 microseconds, 0.05%)</title><a xlink:href="Mojo-Message-Request-pm-93-line.html#108" target="_top"><rect x="1186.3" y="465" width="0.6" height="15.0" fill="rgb(243,136,42)" rx="2" ry="2" />
+<text text-anchor="" x="1189.33" y="475.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::handler (604,762 microseconds, 0.54%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::handler (604,762 microseconds, 0.54%)</title><a xlink:href="Mojolicious-pm-87-line.html#114" target="_top"><rect x="1179.8" y="401" width="6.3" height="15.0" fill="rgb(245,136,44)" rx="2" ry="2" />
+<text text-anchor="" x="1182.78" y="411.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::Role::apply_roles_to_package (17,205 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::Role::apply_roles_to_package (17,205 microseconds, 0.02%)</title><a xlink:href="Moo-Role-pm-997-line.html#272" target="_top"><rect x="17.7" y="561" width="0.2" height="15.0" fill="rgb(248,159,47)" rx="2" ry="2" />
+<text text-anchor="" x="20.70" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Base::import (52,291 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Base::import (52,291 microseconds, 0.05%)</title><a xlink:href="Mojo-Base-pm-19-line.html#64" target="_top"><rect x="11.2" y="561" width="0.5" height="15.0" fill="rgb(238,136,36)" rx="2" ry="2" />
+<text text-anchor="" x="14.17" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Error::BEGIN@32 (137,636 microseconds, 0.12%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Error::BEGIN@32 (137,636 microseconds, 0.12%)</title><a xlink:href="MongoDB-Error-pm-491-line.html#32" target="_top"><rect x="15.3" y="609" width="1.5" height="15.0" fill="rgb(244,162,43)" rx="2" ry="2" />
+<text text-anchor="" x="18.34" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::dispatch (602,718 microseconds, 0.54%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::dispatch (602,718 microseconds, 0.54%)</title><a xlink:href="Mojolicious-pm-87-line.html#88" target="_top"><rect x="1179.8" y="305" width="6.3" height="15.0" fill="rgb(242,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1182.79" y="315.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DBIx::Connector::_connect (18,260 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DBIx::Connector::_connect (18,260 microseconds, 0.02%)</title><a xlink:href="DBIx-Connector-pm-214-line.html#24" target="_top"><rect x="1183.2" y="145" width="0.2" height="15.0" fill="rgb(241,162,39)" rx="2" ry="2" />
+<text text-anchor="" x="1186.16" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Controller::render (53,420 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Controller::render (53,420 microseconds, 0.05%)</title><a xlink:href="Mojolicious-Controller-pm-201-line.html#161" target="_top"><rect x="1185.1" y="145" width="0.6" height="15.0" fill="rgb(243,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1188.09" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Base::import (108,660 microseconds, 0.10%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Base::import (108,660 microseconds, 0.10%)</title><a xlink:href="Mojo-Base-pm-19-line.html#64" target="_top"><rect x="1188.7" y="673" width="1.1" height="15.0" fill="rgb(238,136,36)" rx="2" ry="2" />
+<text text-anchor="" x="1191.70" y="683.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Reactor::Poll::_try (838,978 microseconds, 0.75%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Reactor::Poll::_try (838,978 microseconds, 0.75%)</title><a xlink:href="Mojo-Reactor-Poll-pm-188-line.html#141" target="_top"><rect x="1179.4" y="577" width="8.8" height="15.0" fill="rgb(243,136,42)" rx="2" ry="2" />
+<text text-anchor="" x="1182.42" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::parameterize (12,757 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::parameterize (12,757 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-pm-506-line.html#748" target="_top"><rect x="15.4" y="577" width="0.2" height="15.0" fill="rgb(245,185,44)" rx="2" ry="2" />
+<text text-anchor="" x="18.43" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DBI::connect (16,468 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DBI::connect (16,468 microseconds, 0.01%)</title><a xlink:href="DBI-pm-215-line.html#571" target="_top"><rect x="1183.2" y="129" width="0.1" height="15.0" fill="rgb(241,162,39)" rx="2" ry="2" />
+<text text-anchor="" x="1186.16" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::startup (15,276 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::startup (15,276 microseconds, 0.01%)</title><a xlink:href="Site1-pm-86-line.html#8" target="_top"><rect x="24.4" y="657" width="0.2" height="15.0" fill="rgb(238,149,36)" rx="2" ry="2" />
+<text text-anchor="" x="27.42" y="667.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Plugins::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Plugins.pm:15] (603,210 microseconds, 0.54%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Plugins::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Plugins.pm:15] (603,210 microseconds, 0.54%)</title><a xlink:href="Mojolicious-Plugins-pm-203-line.html#15" target="_top"><rect x="1179.8" y="369" width="6.3" height="15.0" fill="rgb(239,136,37)" rx="2" ry="2" />
+<text text-anchor="" x="1182.78" y="379.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::Union::new (10,018 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::Union::new (10,018 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-Union-pm-935-line.html#22" target="_top"><rect x="17.1" y="609" width="0.1" height="15.0" fill="rgb(235,185,33)" rx="2" ry="2" />
+<text text-anchor="" x="20.14" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::_controller (178,151 microseconds, 0.16%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::_controller (178,151 microseconds, 0.16%)</title><a xlink:href="Mojolicious-Routes-pm-206-line.html#136" target="_top"><rect x="1184.0" y="241" width="1.9" height="15.0" fill="rgb(245,136,44)" rx="2" ry="2" />
+<text text-anchor="" x="1187.04" y="251.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::BSON::BEGIN@32 (299,302 microseconds, 0.27%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::BSON::BEGIN@32 (299,302 microseconds, 0.27%)</title><a xlink:href="MongoDB-BSON-pm-222-line.html#32" target="_top"><rect x="12.0" y="625" width="3.1" height="15.0" fill="rgb(244,162,43)" rx="2" ry="2" />
+<text text-anchor="" x="14.99" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Method::Generate::Accessor::generate_method (14,990 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Method::Generate::Accessor::generate_method (14,990 microseconds, 0.01%)</title><a xlink:href="Method-Generate-Accessor-pm-977-line.html#43" target="_top"><rect x="19.6" y="593" width="0.2" height="15.0" fill="rgb(248,138,47)" rx="2" ry="2" />
+<text text-anchor="" x="22.64" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::Exporter::import (14,653 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::Exporter::import (14,653 microseconds, 0.01%)</title><a xlink:href="Specio-Exporter-pm-242-line.html#12" target="_top"><rect x="14.6" y="593" width="0.1" height="15.0" fill="rgb(238,179,36)" rx="2" ry="2" />
+<text text-anchor="" x="17.58" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::Declare::enum (13,548 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::Declare::enum (13,548 microseconds, 0.01%)</title><a xlink:href="Specio-Declare-pm-246-line.html#93" target="_top"><rect x="13.1" y="577" width="0.2" height="15.0" fill="rgb(230,179,27)" rx="2" ry="2" />
+<text text-anchor="" x="16.13" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::BEGIN@29 (133,741 microseconds, 0.12%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::BEGIN@29 (133,741 microseconds, 0.12%)</title><a xlink:href="MongoDB-MongoClient-pm-987-line.html#29" target="_top"><rect x="17.4" y="625" width="1.4" height="15.0" fill="rgb(233,162,31)" rx="2" ry="2" />
+<text text-anchor="" x="20.41" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Utils::declare (25,932 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Utils::declare (25,932 microseconds, 0.02%)</title><a xlink:href="Type-Utils-pm-542-line.html#88" target="_top"><rect x="16.4" y="593" width="0.3" height="15.0" fill="rgb(248,185,47)" rx="2" ry="2" />
+<text text-anchor="" x="19.40" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Plugin::EPLRenderer::_render (50,898 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Plugin::EPLRenderer::_render (50,898 microseconds, 0.05%)</title><a xlink:href="Mojolicious-Plugin-EPLRenderer-pm-1320-line.html#13" target="_top"><rect x="1185.1" y="81" width="0.5" height="15.0" fill="rgb(243,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1188.11" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_BulkWrite::BEGIN@31 (16,416 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_BulkWrite::BEGIN@31 (16,416 microseconds, 0.01%)</title><a xlink:href="MongoDB-Op-_BulkWrite-pm-1179-line.html#31" target="_top"><rect x="22.8" y="609" width="0.2" height="15.0" fill="rgb(228,162,26)" rx="2" ry="2" />
+<text text-anchor="" x="25.82" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::BEGIN@41 (13,896 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::BEGIN@41 (13,896 microseconds, 0.01%)</title><a xlink:href="MongoDB-pm-219-line.html#41" target="_top"><rect x="24.1" y="641" width="0.1" height="15.0" fill="rgb(227,162,25)" rx="2" ry="2" />
+<text text-anchor="" x="27.09" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::EventEmitter::emit (111,064 microseconds, 0.10%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::EventEmitter::emit (111,064 microseconds, 0.10%)</title><a xlink:href="Mojo-EventEmitter-pm-66-line.html#10" target="_top"><rect x="1186.9" y="449" width="1.2" height="15.0" fill="rgb(237,136,35)" rx="2" ry="2" />
+<text text-anchor="" x="1189.93" y="459.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Sub::Quote::_clean_eval (16,672 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Sub::Quote::_clean_eval (16,672 microseconds, 0.01%)</title><a xlink:href="Sub-Quote-pm-971-line.html#3" target="_top"><rect x="20.3" y="561" width="0.1" height="15.0" fill="rgb(224,164,21)" rx="2" ry="2" />
+<text text-anchor="" x="23.26" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::IOLoop::Client::BEGIN@1.1 (32,929 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::IOLoop::Client::BEGIN@1.1 (32,929 microseconds, 0.03%)</title><a xlink:href="(eval 57)[Mojo-IOLoop-Client-pm-17]-157-line.html#1" target="_top"><rect x="10.5" y="529" width="0.3" height="15.0" fill="rgb(236,136,34)" rx="2" ry="2" />
+<text text-anchor="" x="13.49" y="539.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::BEGIN@28 (24,008 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::BEGIN@28 (24,008 microseconds, 0.02%)</title><a xlink:href="MongoDB-_Topology-pm-1033-line.html#28" target="_top"><rect x="19.2" y="609" width="0.2" height="15.0" fill="rgb(235,162,33)" rx="2" ry="2" />
+<text text-anchor="" x="22.16" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::EventEmitter::emit (605,025 microseconds, 0.54%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::EventEmitter::emit (605,025 microseconds, 0.54%)</title><a xlink:href="Mojo-EventEmitter-pm-66-line.html#10" target="_top"><rect x="1179.8" y="433" width="6.3" height="15.0" fill="rgb(237,136,35)" rx="2" ry="2" />
+<text text-anchor="" x="1182.77" y="443.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::Exporter::import (19,564 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::Exporter::import (19,564 microseconds, 0.02%)</title><a xlink:href="Specio-Exporter-pm-242-line.html#12" target="_top"><rect x="13.5" y="577" width="0.3" height="15.0" fill="rgb(238,179,36)" rx="2" ry="2" />
+<text text-anchor="" x="16.55" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::start (110,597,894 microseconds, 98.64%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::start (110,597,894 microseconds, 98.64%)</title><a xlink:href="Mojolicious-pm-87-line.html#178" target="_top"><rect x="24.6" y="689" width="1163.9" height="15.0" fill="rgb(239,136,37)" rx="2" ry="2" />
+<text text-anchor="" x="27.58" y="699.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >Mojolicious::start</text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Command::BEGIN@13 (27,639 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Command::BEGIN@13 (27,639 microseconds, 0.02%)</title><a xlink:href="Mojolicious-Command-pm-31-line.html#13" target="_top"><rect x="1188.8" y="657" width="0.3" height="15.0" fill="rgb(244,136,43)" rx="2" ry="2" />
+<text text-anchor="" x="1191.82" y="667.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Sub::Quote::unquote_sub (18,940 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Sub::Quote::unquote_sub (18,940 microseconds, 0.02%)</title><a xlink:href="Sub-Quote-pm-971-line.html#170" target="_top"><rect x="20.3" y="577" width="0.2" height="15.0" fill="rgb(228,164,25)" rx="2" ry="2" />
+<text text-anchor="" x="23.25" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::IOLoop::Server::_accept (12,330 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::IOLoop::Server::_accept (12,330 microseconds, 0.01%)</title><a xlink:href="Mojo-IOLoop-Server-pm-183-line.html#115" target="_top"><rect x="1179.5" y="545" width="0.1" height="15.0" fill="rgb(238,136,37)" rx="2" ry="2" />
+<text text-anchor="" x="1182.46" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::has (17,304 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::has (17,304 microseconds, 0.02%)</title><a xlink:href="Moo-pm-492-line.html#61" target="_top"><rect x="21.4" y="609" width="0.2" height="15.0" fill="rgb(230,159,28)" rx="2" ry="2" />
+<text text-anchor="" x="24.40" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Library::add_type (9,535 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Library::add_type (9,535 microseconds, 0.01%)</title><a xlink:href="Type-Library-pm-503-line.html#224" target="_top"><rect x="16.0" y="577" width="0.1" height="15.0" fill="rgb(250,185,49)" rx="2" ry="2" />
+<text text-anchor="" x="18.95" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::BEGIN@34 (107,928 microseconds, 0.10%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::BEGIN@34 (107,928 microseconds, 0.10%)</title><a xlink:href="MongoDB-pm-219-line.html#34" target="_top"><rect x="20.5" y="641" width="1.1" height="15.0" fill="rgb(241,162,39)" rx="2" ry="2" />
+<text text-anchor="" x="23.50" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Loader::load_class (1,361,069 microseconds, 1.21%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Loader::load_class (1,361,069 microseconds, 1.21%)</title><a xlink:href="Mojo-Loader-pm-35-line.html#43" target="_top"><rect x="10.0" y="673" width="14.3" height="15.0" fill="rgb(240,136,38)" rx="2" ry="2" />
+<text text-anchor="" x="13.01" y="683.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::_check_oldest_server (12,382 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::_check_oldest_server (12,382 microseconds, 0.01%)</title><a xlink:href="MongoDB-_Topology-pm-1033-line.html#440" target="_top"><rect x="1187.4" y="321" width="0.1" height="15.0" fill="rgb(238,162,37)" rx="2" ry="2" />
+<text text-anchor="" x="1190.41" y="331.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Database::BEGIN@27 (18,360 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Database::BEGIN@27 (18,360 microseconds, 0.02%)</title><a xlink:href="MongoDB-Database-pm-1121-line.html#27" target="_top"><rect x="20.5" y="625" width="0.2" height="15.0" fill="rgb(236,162,35)" rx="2" ry="2" />
+<text text-anchor="" x="23.53" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::OO::clone (19,199 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::OO::clone (19,199 microseconds, 0.02%)</title><a xlink:href="Specio-OO-pm-248-line.html#259" target="_top"><rect x="13.5" y="561" width="0.2" height="15.0" fill="rgb(251,179,50)" rx="2" ry="2" />
+<text text-anchor="" x="16.55" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::_get_server_link (9,661 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::_get_server_link (9,661 microseconds, 0.01%)</title><a xlink:href="MongoDB-_Topology-pm-1033-line.html#556" target="_top"><rect x="1187.3" y="353" width="0.1" height="15.0" fill="rgb(236,162,34)" rx="2" ry="2" />
+<text text-anchor="" x="1190.30" y="363.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::_Utils::_load_module (16,269 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::_Utils::_load_module (16,269 microseconds, 0.01%)</title><a xlink:href="Moo-_Utils-pm-495-line.html#48" target="_top"><rect x="18.1" y="545" width="0.2" height="15.0" fill="rgb(237,159,35)" rx="2" ry="2" />
+<text text-anchor="" x="21.15" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Server::Daemon::__ANON__[/home/debian/perl5/lib/perl5/Mojo/Server/Daemon.pm:190] (800,564 microseconds, 0.71%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Server::Daemon::__ANON__[/home/debian/perl5/lib/perl5/Mojo/Server/Daemon.pm:190] (800,564 microseconds, 0.71%)</title><a xlink:href="Mojo-Server-Daemon-pm-197-line.html#190" target="_top"><rect x="1179.7" y="513" width="8.4" height="15.0" fill="rgb(239,136,37)" rx="2" ry="2" />
+<text text-anchor="" x="1182.69" y="523.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::_controller (398,078 microseconds, 0.36%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::_controller (398,078 microseconds, 0.36%)</title><a xlink:href="Mojolicious-Routes-pm-206-line.html#136" target="_top"><rect x="1179.8" y="257" width="4.2" height="15.0" fill="rgb(245,136,44)" rx="2" ry="2" />
+<text text-anchor="" x="1182.85" y="267.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Collection::BEGIN@26 (68,706 microseconds, 0.06%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Collection::BEGIN@26 (68,706 microseconds, 0.06%)</title><a xlink:href="MongoDB-Collection-pm-1160-line.html#26" target="_top"><rect x="21.7" y="625" width="0.7" height="15.0" fill="rgb(238,162,37)" rx="2" ry="2" />
+<text text-anchor="" x="24.72" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::is_subtype_of (12,736 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::is_subtype_of (12,736 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-pm-506-line.html#410" target="_top"><rect x="16.5" y="433" width="0.1" height="15.0" fill="rgb(242,185,41)" rx="2" ry="2" />
+<text text-anchor="" x="19.50" y="443.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('main::BEGIN@8 (124,724 microseconds, 0.11%)')" onmouseout="c()" onclick="zoom(this)">
+<title>main::BEGIN@8 (124,724 microseconds, 0.11%)</title><a xlink:href="site1-1-line.html#8" target="_top"><rect x="1188.6" y="705" width="1.3" height="15.0" fill="rgb(230,83,28)" rx="2" ry="2" />
+<text text-anchor="" x="1191.63" y="715.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Method::Generate::Constructor::generate_method (10,530 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Method::Generate::Constructor::generate_method (10,530 microseconds, 0.01%)</title><a xlink:href="Method-Generate-Constructor-pm-975-line.html#135" target="_top"><rect x="1184.5" y="49" width="0.1" height="15.0" fill="rgb(248,138,47)" rx="2" ry="2" />
+<text text-anchor="" x="1187.52" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DateTime::BEGIN@13 (159,757 microseconds, 0.14%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DateTime::BEGIN@13 (159,757 microseconds, 0.14%)</title><a xlink:href="DateTime-pm-223-line.html#13" target="_top"><rect x="12.2" y="609" width="1.7" height="15.0" fill="rgb(244,94,43)" rx="2" ry="2" />
+<text text-anchor="" x="15.17" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::_build_compiled_check (15,731 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::_build_compiled_check (15,731 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-pm-506-line.html#358" target="_top"><rect x="16.5" y="545" width="0.1" height="15.0" fill="rgb(239,185,37)" rx="2" ry="2" />
+<text text-anchor="" x="19.47" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Server::build_app (1,383,976 microseconds, 1.23%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Server::build_app (1,383,976 microseconds, 1.23%)</title><a xlink:href="Mojo-Server-pm-65-line.html#14" target="_top"><rect x="10.0" y="689" width="14.6" height="15.0" fill="rgb(248,136,47)" rx="2" ry="2" />
+<text text-anchor="" x="13.01" y="699.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DateTime::Types::BEGIN@12 (29,811 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DateTime::Types::BEGIN@12 (29,811 microseconds, 0.03%)</title><a xlink:href="DateTime-Types-pm-240-line.html#12" target="_top"><rect x="12.2" y="577" width="0.3" height="15.0" fill="rgb(246,94,45)" rx="2" ry="2" />
+<text text-anchor="" x="15.23" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::OO::clone (12,000 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::OO::clone (12,000 microseconds, 0.01%)</title><a xlink:href="Specio-OO-pm-248-line.html#259" target="_top"><rect x="14.6" y="561" width="0.1" height="15.0" fill="rgb(251,179,50)" rx="2" ry="2" />
+<text text-anchor="" x="17.60" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Template::parse (45,266 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Template::parse (45,266 microseconds, 0.04%)</title><a xlink:href="Mojo-Template-pm-71-line.html#26" target="_top"><rect x="1185.1" y="33" width="0.5" height="15.0" fill="rgb(243,136,42)" rx="2" ry="2" />
+<text text-anchor="" x="1188.11" y="43.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Link::read (29,663 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Link::read (29,663 microseconds, 0.03%)</title><a xlink:href="MongoDB-_Link-pm-1034-line.html#340" target="_top"><rect x="1187.8" y="273" width="0.3" height="15.0" fill="rgb(241,162,40)" rx="2" ry="2" />
+<text text-anchor="" x="1190.77" y="283.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Transaction::HTTP::is_empty (12,035 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Transaction::HTTP::is_empty (12,035 microseconds, 0.01%)</title><a xlink:href="Mojo-Transaction-HTTP-pm-91-line.html#24" target="_top"><rect x="1186.2" y="369" width="0.1" height="15.0" fill="rgb(243,136,42)" rx="2" ry="2" />
+<text text-anchor="" x="1189.16" y="379.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::_build__topology (18,730 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::_build__topology (18,730 microseconds, 0.02%)</title><a xlink:href="MongoDB-MongoClient-pm-987-line.html#1065" target="_top"><rect x="1184.2" y="49" width="0.2" height="15.0" fill="rgb(246,162,45)" rx="2" ry="2" />
+<text text-anchor="" x="1187.17" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Params::ValidationCompiler::Compiler::_add_type_check (12,389 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Params::ValidationCompiler::Compiler::_add_type_check (12,389 microseconds, 0.01%)</title><a xlink:href="Params-ValidationCompiler-Compiler-pm-451-line.html#466" target="_top"><rect x="14.9" y="545" width="0.2" height="15.0" fill="rgb(239,165,37)" rx="2" ry="2" />
+<text text-anchor="" x="17.94" y="555.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Content::Single::parse (9,701 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Content::Single::parse (9,701 microseconds, 0.01%)</title><a xlink:href="Mojo-Content-Single-pm-105-line.html#37" target="_top"><rect x="1186.4" y="433" width="0.1" height="15.0" fill="rgb(243,136,42)" rx="2" ry="2" />
+<text text-anchor="" x="1189.36" y="443.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious.pm:119] (388,387 microseconds, 0.35%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious.pm:119] (388,387 microseconds, 0.35%)</title><a xlink:href="Mojolicious-pm-87-line.html#119" target="_top"><rect x="1179.9" y="193" width="4.1" height="15.0" fill="rgb(246,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="1182.87" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DateTime::Types::BEGIN@14 (10,316 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DateTime::Types::BEGIN@14 (10,316 microseconds, 0.01%)</title><a xlink:href="DateTime-Types-pm-240-line.html#14" target="_top"><rect x="12.8" y="577" width="0.1" height="15.0" fill="rgb(243,94,42)" rx="2" ry="2" />
+<text text-anchor="" x="15.78" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('all (112,126,790 microseconds, 100%)')" onmouseout="c()" onclick="zoom(this)">
+<title>all (112,126,790 microseconds, 100%)</title><rect x="10.0" y="721" width="1180.0" height="15.0" fill="rgb(255,230,55)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="731.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Controller::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Controller.pm:142] (110,849 microseconds, 0.10%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Controller::__ANON__[/home/debian/perl5/lib/perl5/Mojolicious/Controller.pm:142] (110,849 microseconds, 0.10%)</title><a xlink:href="Mojolicious-Controller-pm-201-line.html#142" target="_top"><rect x="1186.9" y="433" width="1.2" height="15.0" fill="rgb(240,136,38)" rx="2" ry="2" />
+<text text-anchor="" x="1189.93" y="443.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::BEGIN@39 (14,095 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::BEGIN@39 (14,095 microseconds, 0.01%)</title><a xlink:href="MongoDB-MongoClient-pm-987-line.html#39" target="_top"><rect x="19.8" y="625" width="0.2" height="15.0" fill="rgb(232,162,30)" rx="2" ry="2" />
+<text text-anchor="" x="22.81" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::__ANON__[/home/debian/perl5/lib/perl5/x86_64-linux-gnu-thread-multi/MongoDB/_Topology.pm:588] (10,600 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::__ANON__[/home/debian/perl5/lib/perl5/x86_64-linux-gnu-thread-multi/MongoDB/_Topology.pm:588] (10,600 microseconds, 0.01%)</title><a xlink:href="MongoDB-_Topology-pm-1033-line.html#586" target="_top"><rect x="1187.4" y="257" width="0.1" height="15.0" fill="rgb(243,162,41)" rx="2" ry="2" />
+<text text-anchor="" x="1190.43" y="267.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Method::Generate::Constructor::__ANON__[/home/debian/perl5/lib/perl5/Method/Generate/Constructor.pm:111] (10,554 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Method::Generate::Constructor::__ANON__[/home/debian/perl5/lib/perl5/Method/Generate/Constructor.pm:111] (10,554 microseconds, 0.01%)</title><a xlink:href="Method-Generate-Constructor-pm-975-line.html#91" target="_top"><rect x="1184.5" y="65" width="0.1" height="15.0" fill="rgb(243,138,42)" rx="2" ry="2" />
+<text text-anchor="" x="1187.52" y="75.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::Controller::Walkworld::echo (98,395 microseconds, 0.09%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::Controller::Walkworld::echo (98,395 microseconds, 0.09%)</title><a xlink:href="Walkworld-pm-1347-line.html#85" target="_top"><rect x="1184.1" y="161" width="1.0" height="15.0" fill="rgb(245,149,44)" rx="2" ry="2" />
+<text text-anchor="" x="1187.06" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Module::Runtime::require_module (19,972 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Module::Runtime::require_module (19,972 microseconds, 0.02%)</title><a xlink:href="Module-Runtime-pm-227-line.html#303" target="_top"><rect x="22.1" y="513" width="0.2" height="15.0" fill="rgb(237,156,35)" rx="2" ry="2" />
+<text text-anchor="" x="25.09" y="523.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Transaction::WebSocket::server_read (113,298 microseconds, 0.10%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Transaction::WebSocket::server_read (113,298 microseconds, 0.10%)</title><a xlink:href="Mojo-Transaction-WebSocket-pm-198-line.html#132" target="_top"><rect x="1186.9" y="481" width="1.2" height="15.0" fill="rgb(241,136,40)" rx="2" ry="2" />
+<text text-anchor="" x="1189.92" y="491.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::with (21,839 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::with (21,839 microseconds, 0.02%)</title><a xlink:href="Moo-pm-492-line.html#56" target="_top"><rect x="22.1" y="577" width="0.2" height="15.0" fill="rgb(235,159,33)" rx="2" ry="2" />
+<text text-anchor="" x="25.09" y="587.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Message::Request::extract_start_line (17,944 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Message::Request::extract_start_line (17,944 microseconds, 0.02%)</title><a xlink:href="Mojo-Message-Request-pm-93-line.html#48" target="_top"><rect x="1186.5" y="433" width="0.1" height="15.0" fill="rgb(246,136,46)" rx="2" ry="2" />
+<text text-anchor="" x="1189.46" y="443.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::BSON::BEGIN@33 (186,446 microseconds, 0.17%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::BSON::BEGIN@33 (186,446 microseconds, 0.17%)</title><a xlink:href="MongoDB-BSON-pm-222-line.html#33" target="_top"><rect x="15.1" y="625" width="2.0" height="15.0" fill="rgb(242,162,41)" rx="2" ry="2" />
+<text text-anchor="" x="18.14" y="635.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::Controller::Login::signinact (336,819 microseconds, 0.30%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::Controller::Login::signinact (336,819 microseconds, 0.30%)</title><a xlink:href="Login-pm-1330-line.html#319" target="_top"><rect x="1179.9" y="177" width="3.5" height="15.0" fill="rgb(243,149,42)" rx="2" ry="2" />
+<text text-anchor="" x="1182.87" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('main::BEGIN@6 (11,041 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>main::BEGIN@6 (11,041 microseconds, 0.01%)</title><a xlink:href="site1-1-line.html#6" target="_top"><rect x="1188.5" y="705" width="0.1" height="15.0" fill="rgb(233,83,31)" rx="2" ry="2" />
+<text text-anchor="" x="1191.51" y="715.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Topology::scan_all_servers (12,823 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Topology::scan_all_servers (12,823 microseconds, 0.01%)</title><a xlink:href="MongoDB-_Topology-pm-1033-line.html#352" target="_top"><rect x="1187.4" y="337" width="0.1" height="15.0" fill="rgb(238,162,36)" rx="2" ry="2" />
+<text text-anchor="" x="1190.41" y="347.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::Controller::Login::usercheck (51,498 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::Controller::Login::usercheck (51,498 microseconds, 0.05%)</title><a xlink:href="Login-pm-1330-line.html#115" target="_top"><rect x="1183.4" y="177" width="0.6" height="15.0" fill="rgb(239,149,37)" rx="2" ry="2" />
+<text text-anchor="" x="1186.41" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::Match::find (11,370 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::Match::find (11,370 microseconds, 0.01%)</title><a xlink:href="Mojolicious-Routes-Match-pm-202-line.html#10" target="_top"><rect x="1186.0" y="257" width="0.1" height="15.0" fill="rgb(248,136,48)" rx="2" ry="2" />
+<text text-anchor="" x="1188.96" y="267.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DBI::st::execute (311,646 microseconds, 0.28%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DBI::st::execute (311,646 microseconds, 0.28%)</title><a xlink:href="site1-1-line.html#DBI__st__execute" target="_top"><rect x="1179.9" y="161" width="3.3" height="15.0" fill="rgb(240,162,38)" rx="2" ry="2" />
+<text text-anchor="" x="1182.88" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Routes::match (15,361 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Routes::match (15,361 microseconds, 0.01%)</title><a xlink:href="Mojolicious-Routes-pm-206-line.html#58" target="_top"><rect x="1185.9" y="273" width="0.2" height="15.0" fill="rgb(242,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="1188.92" y="283.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Commands::run (110,586,048 microseconds, 98.63%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Commands::run (110,586,048 microseconds, 98.63%)</title><a xlink:href="Mojolicious-Commands-pm-18-line.html#28" target="_top"><rect x="24.6" y="673" width="1163.8" height="15.0" fill="rgb(243,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="27.58" y="683.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >Mojolicious::Commands::run</text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::BEGIN@9 (53,194 microseconds, 0.05%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::BEGIN@9 (53,194 microseconds, 0.05%)</title><a xlink:href="Mojo-pm-88-line.html#9" target="_top"><rect x="11.2" y="593" width="0.5" height="15.0" fill="rgb(228,136,26)" rx="2" ry="2" />
+<text text-anchor="" x="14.16" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Module::Runtime::require_module (16,108 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Module::Runtime::require_module (16,108 microseconds, 0.01%)</title><a xlink:href="Module-Runtime-pm-227-line.html#303" target="_top"><rect x="18.2" y="513" width="0.1" height="15.0" fill="rgb(237,156,35)" rx="2" ry="2" />
+<text text-anchor="" x="21.15" y="523.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Site1::Controller::Walkworld::__ANON__[/media/storage/debian/perlwork/mojowork/server/site1/script/../lib/Site1/Controller/Walkworld.pm:401] (110,788 microseconds, 0.10%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Site1::Controller::Walkworld::__ANON__[/media/storage/debian/perlwork/mojowork/server/site1/script/../lib/Site1/Controller/Walkworld.pm:401] (110,788 microseconds, 0.10%)</title><a xlink:href="Walkworld-pm-1347-line.html#160" target="_top"><rect x="1186.9" y="417" width="1.2" height="15.0" fill="rgb(244,149,43)" rx="2" ry="2" />
+<text text-anchor="" x="1189.93" y="427.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Message::Request::BEGIN@2 (42,034 microseconds, 0.04%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Message::Request::BEGIN@2 (42,034 microseconds, 0.04%)</title><a xlink:href="Mojo-Message-Request-pm-93-line.html#2" target="_top"><rect x="11.2" y="529" width="0.4" height="15.0" fill="rgb(240,136,39)" rx="2" ry="2" />
+<text text-anchor="" x="14.20" y="539.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Moo::_constructor_maker_for (12,473 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Moo::_constructor_maker_for (12,473 microseconds, 0.01%)</title><a xlink:href="Moo-pm-492-line.html#167" target="_top"><rect x="17.0" y="593" width="0.1" height="15.0" fill="rgb(242,159,41)" rx="2" ry="2" />
+<text text-anchor="" x="19.97" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::compiled_check (15,799 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::compiled_check (15,799 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-pm-506-line.html#278" target="_top"><rect x="16.5" y="561" width="0.1" height="15.0" fill="rgb(239,185,37)" rx="2" ry="2" />
+<text text-anchor="" x="19.47" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::IOLoop::Server::__ANON__[/home/debian/perl5/lib/perl5/Mojo/IOLoop/Server.pm:110] (12,435 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::IOLoop::Server::__ANON__[/home/debian/perl5/lib/perl5/Mojo/IOLoop/Server.pm:110] (12,435 microseconds, 0.01%)</title><a xlink:href="Mojo-IOLoop-Server-pm-183-line.html#110" target="_top"><rect x="1179.5" y="561" width="0.1" height="15.0" fill="rgb(244,136,43)" rx="2" ry="2" />
+<text text-anchor="" x="1182.46" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojo::Server::Daemon::run (110,584,646 microseconds, 98.62%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojo::Server::Daemon::run (110,584,646 microseconds, 98.62%)</title><a xlink:href="Mojo-Server-Daemon-pm-197-line.html#28" target="_top"><rect x="24.6" y="641" width="1163.8" height="15.0" fill="rgb(243,136,41)" rx="2" ry="2" />
+<text text-anchor="" x="27.58" y="651.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >Mojo::Server::Daemon::run</text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('DateTime::BEGIN@16 (30,664 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>DateTime::BEGIN@16 (30,664 microseconds, 0.03%)</title><a xlink:href="DateTime-pm-223-line.html#16" target="_top"><rect x="14.3" y="609" width="0.3" height="15.0" fill="rgb(239,94,38)" rx="2" ry="2" />
+<text text-anchor="" x="17.25" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::Op::_Explain::BEGIN@26 (27,284 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::Op::_Explain::BEGIN@26 (27,284 microseconds, 0.02%)</title><a xlink:href="MongoDB-Op-_Explain-pm-1009-line.html#26" target="_top"><rect x="18.0" y="593" width="0.3" height="15.0" fill="rgb(238,162,37)" rx="2" ry="2" />
+<text text-anchor="" x="21.05" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::MongoClient::_topology (18,756 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::MongoClient::_topology (18,756 microseconds, 0.02%)</title><a xlink:href="(eval 836)[Sub-Quote-pm-3]-1114-line.html#6" target="_top"><rect x="1184.2" y="65" width="0.2" height="15.0" fill="rgb(246,162,45)" rx="2" ry="2" />
+<text text-anchor="" x="1187.17" y="75.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Plugins::emit_hook_reverse (12,064 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Plugins::emit_hook_reverse (12,064 microseconds, 0.01%)</title><a xlink:href="Mojolicious-Plugins-pm-203-line.html#27" target="_top"><rect x="1184.7" y="113" width="0.1" height="15.0" fill="rgb(243,136,42)" rx="2" ry="2" />
+<text text-anchor="" x="1187.68" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Specio::Declare::BEGIN@11 (12,504 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Specio::Declare::BEGIN@11 (12,504 microseconds, 0.01%)</title><a xlink:href="Specio-Declare-pm-246-line.html#11" target="_top"><rect x="12.2" y="561" width="0.2" height="15.0" fill="rgb(231,179,28)" rx="2" ry="2" />
+<text text-anchor="" x="15.25" y="571.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Types::BEGIN@25 (19,500 microseconds, 0.02%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Types::BEGIN@25 (19,500 microseconds, 0.02%)</title><a xlink:href="MongoDB-_Types-pm-502-line.html#25" target="_top"><rect x="15.6" y="593" width="0.2" height="15.0" fill="rgb(240,162,38)" rx="2" ry="2" />
+<text text-anchor="" x="18.57" y="603.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::GridFS::BEGIN@23 (9,996 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::GridFS::BEGIN@23 (9,996 microseconds, 0.01%)</title><a xlink:href="MongoDB-GridFS-pm-1122-line.html#23" target="_top"><rect x="20.6" y="609" width="0.1" height="15.0" fill="rgb(243,162,42)" rx="2" ry="2" />
+<text text-anchor="" x="23.56" y="619.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Type::Tiny::is_a_type_of (14,642 microseconds, 0.01%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Type::Tiny::is_a_type_of (14,642 microseconds, 0.01%)</title><a xlink:href="Type-Tiny-pm-506-line.html#437" target="_top"><rect x="16.5" y="449" width="0.1" height="15.0" fill="rgb(242,185,41)" rx="2" ry="2" />
+<text text-anchor="" x="19.48" y="459.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('Mojolicious::Commands::start_app (111,981,925 microseconds, 99.87%)')" onmouseout="c()" onclick="zoom(this)">
+<title>Mojolicious::Commands::start_app (111,981,925 microseconds, 99.87%)</title><a xlink:href="Mojolicious-Commands-pm-18-line.html#72" target="_top"><rect x="10.0" y="705" width="1178.5" height="15.0" fill="rgb(248,136,47)" rx="2" ry="2" />
+<text text-anchor="" x="13.01" y="715.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >Mojolicious::Commands::start_app</text>
+</a>
+</g>
+<g class="func_g" onmouseover="s('MongoDB::_Query::execute (34,625 microseconds, 0.03%)')" onmouseout="c()" onclick="zoom(this)">
+<title>MongoDB::_Query::execute (34,625 microseconds, 0.03%)</title><a xlink:href="MongoDB-_Query-pm-1146-line.html#203" target="_top"><rect x="1187.7" y="353" width="0.4" height="15.0" fill="rgb(240,162,38)" rx="2" ry="2" />
+<text text-anchor="" x="1190.73" y="363.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</a>
+</g>
+</svg>

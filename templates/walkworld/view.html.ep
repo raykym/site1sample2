@@ -30,7 +30,8 @@
  gpssetID = null;
  gpsInterval = 10000; // 10secで１回GPSをチェックする。
 
- SencerToggle = true; // Stoggle()を利用しない方向で常時true
+ JSencerToggle = true; // Stoggle()を利用しない方向で常時true
+ ASencerToggle = false; 
 
  setEnmyPos = 0; // enemy set counter
 
@@ -53,6 +54,7 @@ $(function(){
    AccelSence();
    JairoSence();
    calibration();
+   $("#tMaker_btn").text("Maker ON!");
    loopstart();   // gps auto start.....
   });
     wsCall(dumCall);
@@ -68,8 +70,10 @@ function Mtoggle(){
 
     if (MakerToggle) {
         MakerToggle = false;
+        $("#tMaker_btn").text("Maker ON!");
     } else {
         MakerToggle = true;
+        $("#tMaker_btn").text("Maker OFF!");
     }
 }
 
@@ -178,7 +182,7 @@ function geoDistance(lat1, lng1, lat2, lng2, precision) {
 
 // 加速度センサー
 function AccelSence(){
-    if (SencerToggle) {    window.addEventListener("devicemotion", devicemotionHandler, true);
+    if (ASencerToggle) {    window.addEventListener("devicemotion", devicemotionHandler, true);
           } else {
                            window.removeEventListener("devicemotion", devicemotionHandler);
           }
@@ -248,7 +252,7 @@ function calibration() {
 
 // JAIRO 
 function JairoSence(){
-     if (SencerToggle) {   window.addEventListener("deviceorientation", deviceorientationHandler, true);
+     if (JSencerToggle) {   window.addEventListener("deviceorientation", deviceorientationHandler, true);
            } else {
                            window.removeEventListener("deviceorientation", deviceorientationHandler);
            }
@@ -267,19 +271,18 @@ function deviceorientationHandler(event) {
    //   console.log("DEBUG: beta: " + event.beta);
    //   console.log("DEBUG: gamma: " + event.gamma);
    //   console.log("DEBUG: absolute: " + event.absolute);
-        event.absorute = true;
-        event.alpha = null;
-        event.beta = null;
-        event.gamma = null;
-        event.absorute = true;
 
   // X軸
     $('#event_x').text(event.beta);
   // Y軸
     $('#event_y').text(event.gamma);
   // Z軸
-     // trunsrate Noth0 and RightRound   
-         N0r = (event.alpha * -1 ); 
+     // trunsrate Noth0 and RightRound   N0r=0に固定する地図上の方角を示す
+ %#    if (( event.alpha == null) || ( event.alpha == undefined )) {
+ %#        N0r = 0;
+ %#      } else {
+ %#        N0r = (360 - event.alpha ); 
+ %#      }
      //    N0r = compassHeading(event.alpha, event.beta, event.gamma);
 
        ALPHA = event.alpha;
@@ -817,17 +820,10 @@ function keyInput(){
            pointget();  
       //     AccelSence();  // on/offが切り替わる
       //     JairoSence();
+           calibration();
 
            // Accelarator Check
-           if ( a == undefined ) {
-              check_cnt++;
-              if ( check_cnt == 1 ) {
-                  alert("Shake not SUPPORT Device ,USE 'HIT Emurator Support' AND Arrow UP to North");
-                  $("#emuon").prop("disabled", false);
-              }
-           }
-           else if ( a.x == null ) {
-            //   console.log("DEBUG: a.x: " + a.x + "|" + a.y + "|" + a.z);
+           if (( a == undefined )||( a.x == null )){
               check_cnt++;
               if ( check_cnt == 1 ) {
                   alert("Shake not SUPPORT Device ,USE 'HIT Emurator Support' AND Arrow UP to North");
@@ -835,9 +831,6 @@ function keyInput(){
               }
            }
 
-           if ( navigator.online == false ) {
-               setTimeout("wsCall(dumCall)" , 1000); 
-              }
 
            console.log("DEBUG: keyInput call. push or Interval");
            if (ws.readyState == 1 ) {
@@ -847,12 +840,16 @@ function keyInput(){
                 alert("Reload page!!!!");
            }
        var fetchgps = new Promise(function(resolv){
-               gpsset(resolv);
+
+           if ( navigator.online == false ) {
+               setTimeout("wsCall(resolv)" , 1000); 
+              } else { resolv(); }
+
             });
            fetchgps.then(function(){
 
-           %#   ws.close
-           %#   console.log("DEBUG: ws.close ---------------");
+               gpsset(dumCall);
+
            });
 }
 
@@ -918,7 +915,7 @@ function setPointMaker(){
 %#    <button type="button" class="ui-btn " onclick="gpsset(dumCall);">GPS Enable</button>
 %#    <button type="button" class="ui-btn " onclick="enmset();">Ghost Set</button>
     <button type="button" class="ui-btn " onClick="setPointMaker();">PUT Tower</button>
-    <button type="button" class="ui-btn " onclick="Mtoggle();">Maker Toggle</button>
+    <button type="button" class="ui-btn " onclick="Mtoggle();" id="tMaker_btn"></button>
     <button type="button" class="ui-btn " onclick="hangUp();" style="background-color: #ff1111; color: #ffff00">Restart</button>
    <!-- chatScreen -->
     <div style="overflow: scroll; width: 250px; height: 400px; border: 1px solid">

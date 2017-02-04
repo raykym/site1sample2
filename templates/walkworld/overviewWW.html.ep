@@ -372,6 +372,10 @@ function keyInput(){
 %#    <button type="button" class="ui-btn " onclick="enmset();">Ghost Set</button>
     <button type="button" class="ui-btn " onclick="hangUp();" style="background-color: #ff1111; color: #ffff00">Restart</button>
 %#    <button type="button" class="ui-btn " onclick="Mtoggle();">Maker Toggle</button>
+   <!-- chatScreen -->
+    <div style="overflow: scroll; width: 250px; height: 400px; border: 1px solid">
+        <ul id="output_chat" data-role="listview" data-inset="true"></ul>
+    </div>
   </div>
   <div data-role="panel" id="r_panel" data-display="overlay" data-position="right" style="background-color: #aac78d;">
     <p>討伐数：<a id="user_points"></a></p>

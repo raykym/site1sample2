@@ -79,6 +79,8 @@ sub rcvpush {
 
 my $stream_io = {};
 
+my $debugCount = 6;
+
 # WalkWorld websocket endpoint
 sub echo {
     my $self = shift;
@@ -112,7 +114,7 @@ sub echo {
 
     my $userobj;  #接続しているuserの位置情報
 
-    #NPCからのチャットはバイパスする mognodb負荷軽減
+    #NPCへのチャットはバイパスする mognodb負荷軽減
       if ( ! ( $username =~ /npcuser/ ) || ( $username =~ /searchnpc/ )) {  
 
     # GPS情報が来るまでdelayする
@@ -311,6 +313,9 @@ sub echo {
 
            $self->app->log->debug("DEBUG: $username msg: $msg");
 
+           # 負荷軽減になるのか？　MemberTimeLineを1個に限定出来るのか？　書き込み前に削除を加えてみる
+           $timelinecoll->delete_many({"userid" => "$jsonobj->{userid}"}); # mognodb3.2
+
            # TTl DB
            $timelinecoll->insert($jsonobj);
            # LOG用DB
@@ -468,6 +473,12 @@ sub NESW { deg2rad($_[0]), deg2rad( 90 - $_[1]) }
          $stream_io->{$id}->timeout(30);  # 30sec
          $self->inactivity_timeout(12000); # 12sec 
 
+ # for NYTProf
+ #     $debugCount--;
+ #     if ($debugCount == 0 ) {
+ #        exit;
+ #     }
+
 } # echo
 
 sub pointget {
@@ -529,6 +540,9 @@ sub echo3 {
     my $wwdblog = $self->app->mongoclient->get_database('WalkWorldLOG');
     my $timelinelog = $wwdblog->get_collection('MemberTimeLinelog');
 
+    my $chatname = "WALKCHAT";
+    my @chatArray = ( $chatname );
+
   # WalkChat用
 #    my $holldb = $self->app->mongoclient->get_database('holl_tl');
 #    my $walkchatcoll = $holldb->get_collection('walkchat');
@@ -560,8 +574,8 @@ sub echo3 {
 
            if ( defined($jsonobj->{username})) {
 
-# usernamから1000件ほど検索して返す "upointlist"
-              my $unamegetlist = $timelinelog->find({ "name" => $jsonobj->{username} })->sort({ "_id" => -1 })->limit(1000);
+# usernamから360件(1hour)ほど検索して返す "upointlist"
+              my $unamegetlist = $timelinelog->find({ "name" => $jsonobj->{username} })->sort({ "_id" => -1 })->limit(360);
               my @unamepointlist = $unamegetlist->all;
               my $listhash = { 'upointlist' => \@unamepointlist };
               my $jsontext = to_json($listhash);
@@ -610,9 +624,39 @@ sub echo3 {
         $self->app->log->debug("DEBUG: On finish!!");
     });
 
+#redis receve
+     $self->redis->on(message => sub {
+                  my ($redis,$mess,$channel) = @_;
+                      $self->app->log->debug("DEBUG: on redis channel:($userid) $mess");
+
+                      if ( $channel ne $chatname ) { return; } # filter channel
+
+                      my $messobj = from_json($mess);
+
+                        if ( defined $clients->{$id} ){
+                           $clients->{$id}->send($mess);
+                           $self->app->log->debug("DEBUG: send websocket:($userid) $mess");
+                        }
+
+                       return;
+                  });  # redis on message
+
+     $self->redis->subscribe(\@chatArray, sub {
+                   my ($redis, $err) = @_;
+                 #     return $redis->publish( $chatname => $err) if $err;
+                      $self->app->log->debug("DEBUG: $userid redis subscribe");
+                      return $redis->incr(@chatArray);
+                   });
+     $self->redis->expire( \@chatArray => 3600 );
+
+     $self->redis->on(error => sub {
+                   my ($redis,$err) = @_;
+                      $self->app->log->info("DEBUG: $userid redis error: $err");
+                   });
+
   my $stream = Mojo::IOLoop->stream($self->tx->connection);
         $stream->timeout(0);  # no timeout!
-        $self->inactivity_timeout(1000);
+        $self->inactivity_timeout(10000);
 
 }
 

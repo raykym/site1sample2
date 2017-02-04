@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+  <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+  <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+  <script src="https://apis.google.com/js/client.js?onload=gauth"></script>
+
+  <script type="text/javascript">
+
+ window.addEventListener("deviceorientation", deviceorientationHandler, true);
+ 
+var ALPHA;
+var BETA;
+var GAMMA;
+var ABSO;
+
+function deviceorientationHandler(event) {
+
+   //   console.log("DEBUG: JAIRO START!!");
+
+   //   console.log("DEBUG: alpha: " + event.alpha);
+   //   console.log("DEBUG: beta: " + event.beta);
+   //   console.log("DEBUG: gamma: " + event.gamma);
+   //   console.log("DEBUG: absolute: " + event.absolute);
+
+  // X軸
+    $('#event_x').text(event.beta);
+  // Y軸
+    $('#event_y').text(event.gamma);
+  // Z軸
+     // trunsrate Noth0 and RightRound
+         N0r = (360 - event.alpha );
+
+       ALPHA = event.alpha;
+       BETA = event.beta;
+       GAMMA = event.gamma;
+       ABSO = event.absolute;
+
+       $('#aaa').text(ALPHA);
+       $('#bbb').text(BETA);
+       $('#ccc').text(GAMMA);
+
+} // deviceorientationHandler
+
+
+
+
+ </script>
+
+<div id="aaa" ></div>
+<div id="bbb" ></div>
+<div id="ccc" ></div>
+
+</html>
