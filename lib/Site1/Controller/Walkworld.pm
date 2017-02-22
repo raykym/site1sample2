@@ -102,6 +102,7 @@ sub echo {
     my $walkchatcoll = $holldb->get_collection('walkchat');
     my $walkchatdrpmsg = $holldb->get_collection('walkchat_dropmsg');
 
+
     my $username = $self->stash('username');
     my $icon = $self->stash('icon'); #encodeされたままのはず。
     my $icon_url = $self->stash('icon_url');
@@ -269,6 +270,10 @@ sub echo {
                my $pcnt = $#execute + 1;
 
                $self->redis->set( "GHOSTGET$jsonobj->{execute}" => $pcnt );
+
+              #ランキング処理
+              #この処理はNPCが行うので接続情報はNPCになる。従って、攻撃シグナルにexecemailを追加して、emailでsidを検索出来るように修正した。
+               $self->redis->zadd('gscore', "$pcnt", "$jsonobj->{execemail}");
 
                undef @execute;
                undef $pcnt;
@@ -485,6 +490,10 @@ sub pointget {
     my $self = shift;
   # mongodbからredisに移行
     my $uid = $self->stash('uid');
+
+    my $config = $self->app->plugin('Config');
+    my $sth_sessionid = $self->app->dbconn->dbh->prepare("$config->{sql_sessionid_chk}");
+
 #    my $wwlogdb = $self->app->mongoclient->get_database('WalkWorldLOG');
 #    my $timelinelog = $wwlogdb->get_collection('MemberTimeLinelog');
                                           # executeが自分かつ、hitnameが存在する
@@ -494,12 +503,31 @@ sub pointget {
 #    my $pcnt = $#execute + 1;
 
     my $pcnt = $self->redis->get("GHOSTGET$uid");
-
+    my $emails = $self->redis->zrevrange("gscore", 0, 10); #配列だけど中はテキスト
+    ##   $self->app->log->info("DEBUG: redis gscore: $sids");
     if ( ! defined $pcnt ) { $pcnt = "Not collect" };
 
-    my $resultpoint = { "count" => $pcnt }; 
+    my @emailARRAY; #値が空なら空白配列のまま
+       if ( defined $emails){ @emailARRAY = @$emails };
 
-   $self->res->headers->header("Access-Control-Allow-Origin" => 'https://www.backbone.site' );
+    my @scoreARRAY = (); #emailsの順番でアカウント情報配列を取得
+    foreach my $i (@emailARRAY){
+      #  $self->app->log->info("DEBUG: scoreARRAY: $i");
+           $sth_sessionid->execute($i);
+        my $get_value = $sth_sessionid->fetchrow_hashref();
+        my $sid = $get_value->{sessionid}; 
+
+       my $acc = $self->redis->get("SID$sid");
+       my $cnt = $self->redis->zscore('gscore',"$i");
+          $acc = from_json($acc);
+          $acc->{count} = $cnt;
+        push(@scoreARRAY,$acc);
+    }
+
+    my $resultpoint = { 'count' => $pcnt, 'gscore' => \@scoreARRAY }; 
+
+#   $self->res->headers->header("Access-Control-Allow-Origin" => 'https://www.backbone.site' );
+   $self->res->headers->header("Access-Control-Allow-Origin" => 'https://westwind.iobb.net' );
    $self->render(json => $resultpoint);
 
    undef $uid;
@@ -530,7 +558,7 @@ sub echo3 {
 
        $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
     my $id = sprintf "%s", $self->tx->connection;
-    #   $clients->{$id} = $self->tx;
+       $clients->{$id} = $self->tx;
 
     my $userid = $self->stash('uid');
 

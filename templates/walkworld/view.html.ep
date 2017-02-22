@@ -46,6 +46,7 @@
            var icon = "<%= $icon %>";
                iconurl = "/imgcomm?oid=" + icon + "&resize=1";  
            }
+ email = "<%= $email %>";
 
 // main?
 $(function(){
@@ -112,7 +113,7 @@ function hitEmure(){
                               }  // 再接続用
                 hit_tar.filter( function(element, index){
                    console.log("DEBUG: HIT " + element.userid );
-                   var hit_param = { to : element.userid, execute : uid };
+                   var hit_param = { to : element.userid, execute : uid, execemail : email };
                    ws.send( JSON.stringify(hit_param));
                    console.log("DEBUG: SEND hit_param " + JSON.stringify(hit_param));
                    delete hit_param;
@@ -225,7 +226,7 @@ function devicemotionHandler(event) {
                               }  // 再接続用
                 hit_tar.filter( function(element, index){
                    console.log("DEBUG: HIT " + element.userid );
-                   var hit_param = { to : element.userid, execute : uid };
+                   var hit_param = { to : element.userid, execute : uid, execemail : email };
                    ws.send( JSON.stringify(hit_param));
                    console.log("DEBUG: SEND hit_param " + JSON.stringify(hit_param));
                    delete hit_param;
@@ -395,6 +396,14 @@ function respointget(data){
  //   var samp = JSON.stringify(data);
  //   console.log("DEBUG: countpoint: " + samp );
     $('#user_points').text(data.count);
+
+      var samp = JSON.stringify(data.gscore);
+      var gscore = data.gscore;
+      console.log("DEBUG: gscore: " + samp);
+      $("#output_gscore").empty();
+      for ( var i=0; i<=gscore.length; i++ ){
+            $('#output_gscore').append("<p><li>" + gscore[i].count + "<img src='" + gscore[i].icon_url + "' width='50' height='50'>" + gscore[i].username + "</li></p>");
+      }
 
 }
 
@@ -927,6 +936,7 @@ function setPointMaker(){
 <!-- panel right -->
   <div data-role="panel" id="r_panel" data-display="overlay" data-position="right" style="background-color: #aac78d;">
     <p>討伐数：<a id="user_points"></a></p>
+        <ul id="output_gscore" data-role="listview" data-inset="true"></ul>
   </div>
   <div id="gmap" class="mapbase" style="width : 100%; height : 360px;"></div>
   <div class="ui-grid-a">

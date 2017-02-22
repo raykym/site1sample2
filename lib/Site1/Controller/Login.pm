@@ -183,6 +183,8 @@ sub usercheck {
        $icon = urlsafe_b64encode($icon) if ( $icon ne "nowprint"); #urlsafe_b64encode
     my $icon_url ;
 
+    my $expireterm = 2592000;  #1month
+
 
  if (! defined $username ) {   
 
@@ -295,7 +297,7 @@ sub usercheck {
     $self->app->log->info("DEBUG: set redis: $jsontext ");
 
        $self->redis->set($userredisid => $jsontext);
-       $self->redis->expire( $userredisid => 86400);
+       $self->redis->expire( $userredisid => $expireterm);
 
 
   # 変数の解放
