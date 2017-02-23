@@ -401,7 +401,7 @@ function respointget(data){
       var gscore = data.gscore;
       console.log("DEBUG: gscore: " + samp);
       $("#output_gscore").empty();
-      for ( var i=0; i<=gscore.length; i++ ){
+      for ( var i=0; i<gscore.length; i++ ){
             $('#output_gscore').append("<p><li>" + gscore[i].count + "<img src='" + gscore[i].icon_url + "' width='50' height='50'>" + gscore[i].username + "</li></p>");
       }
 
