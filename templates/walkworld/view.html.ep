@@ -901,6 +901,29 @@ function setPointMaker(){
         ws.send(JSON.stringify(putmaker)); 
 }
 
+function setEventTrap(){
+    // EventMaker
+    var evobj_stat = {
+                     location : {
+                                    type:"Point",
+                                    coordinates : [ lng , lat ]
+                                   },
+                     loc : {
+                                     lat : lat,
+                                     lng : lng
+                                             },
+                     name : "mine",
+                     status : "everyone",
+                     ttl : "",
+                     message : "TRAPに引っかかった！！！",
+                     email : email,
+                     };
+
+    var eventmaker = { eventmaker : evobj_stat };
+
+    ws.send(JSON.stringify(eventmaker));
+}
+
 
 </script>
 
@@ -924,6 +947,7 @@ function setPointMaker(){
 %#    <button type="button" class="ui-btn " onclick="gpsset(dumCall);">GPS Enable</button>
 %#    <button type="button" class="ui-btn " onclick="enmset();">Ghost Set</button>
     <button type="button" class="ui-btn " onClick="setPointMaker();">PUT Tower</button>
+    <button type="button" class="ui-btn " onClick="setEventTrap();">PUT EventTrap</button>
     <button type="button" class="ui-btn " onclick="Mtoggle();" id="tMaker_btn"></button>
     <button type="button" class="ui-btn " onclick="hangUp();" style="background-color: #ff1111; color: #ffff00">Restart</button>
    <!-- chatScreen -->
@@ -940,13 +964,17 @@ function setPointMaker(){
   </div>
   <div id="gmap" class="mapbase" style="width : 100%; height : 360px;"></div>
   <div class="ui-grid-a">
-    <div class="ui-block-a"><div class="ui-bar"  style="hight: 60px"><button type="button" class="ui-btn " onClick="keyInput();" style="background-color: #aac78d; font-size: x-small;"><img id="arrow2" class="arrow2" src="/img/arrow.png" width="45" hight="45"/><img id="arrow" class="arrow" src="/img/cyrclearrow_mos.png" width="45" hight="45"/><BR>Head | ghost</button></div></div>
+    <div class="ui-block-a"><div class="ui-bar"  style="hight: 60px"><button type="button" class="ui-btn " onClick="keyInput();" style="background-color: #aac78d; font-size: x-small;"><img id="arrow2" class="arrow2" src="/img/arrow.png" width="45" hight="45"/><img id="arrow" class="arrow" src="/img/cyrclearrow_mos.png" width="45" hight="45"/><BR>Head | ghost</button>
+    <button id="emuon" type="button" class="ui-btn" onClick="hitEmure();" style="background-color: #aac78d;" disabled='disabled'>Exorcise Strike</button>
+    </div>
+    </div>
     <div class="ui-block-b">
                           <div class="ui-bar"  style="hight: 60px">
                                Network：<text id="output"></text>
                                Distance : <text id="output_d"></text>
                           </div>
-                          <button id="emuon" type="button" class="ui-btn" onClick="hitEmure();" style="background-color: #aac78d;" disabled='disabled'>HIT Emurator Support</button>
+                          <button type="button" class="ui-btn " onClick="setPointMaker();" style="background-color: #aac78d;" >PUT Tower</button>
+                          <button type="button" class="ui-btn " onClick="setEventTrap();" style="background-color: #aac78d;" >PUT EventTrap</button>
     </div>
   </div> <!-- ui-grid-a -->
   <div style="border: 1px solid; background-color: #bbd89e;"><text id="textarea"></text></div>

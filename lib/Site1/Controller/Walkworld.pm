@@ -90,12 +90,15 @@ sub echo {
        $clients->{$id} = $self->tx;
 
     my $userid = $self->stash('uid');
+    my $redis ||= Mojo::Redis2->new;
 
     my $wwdb = $self->app->mongoclient->get_database('WalkWorld');
     my $timelinecoll = $wwdb->get_collection('MemberTimeLine');
+    my $trapmemberlist = $wwdb->get_collection('trapmemberlist');
 
     my $wwlogdb = $self->app->mongoclient->get_database('WalkWorldLOG');
     my $timelinelog = $wwlogdb->get_collection('MemberTimeLinelog');
+    my $membercount = $wwlogdb->get_collection('MemberCount');
 
   # WalkChat用
     my $holldb = $self->app->mongoclient->get_database('holl_tl');
@@ -104,6 +107,7 @@ sub echo {
 
 
     my $username = $self->stash('username');
+    my $email = $self->stash('email');
     my $icon = $self->stash('icon'); #encodeされたままのはず。
     my $icon_url = $self->stash('icon_url');
        $icon_url = "/imgcomm?oid=$icon" if (! defined $icon_url);
@@ -243,8 +247,8 @@ sub echo {
                    my $chatjson = to_json($chatobj);
                       
                    # 書き込み通知
-                   $self->redis->publish( $chatname , $chatjson );
-                   $self->redis->expire( $chatname => 3600 );
+                   $redis->publish( $chatname , $chatjson );
+                   $redis->expire( $chatname => 3600 );
                    $self->app->log->debug("DEBUG: $username publish WALKCHAT");
 
            return;
@@ -262,32 +266,47 @@ sub echo {
                $timelinecoll->delete_many({"userid" => "$jsonobj->{to}"}); # mognodb3.2
                $self->app->log->debug("DEBUG: $username hit delete many execute.");
 
-             #撃墜結果を集計      
-                                          #NPCが接続した状態で、executeしたuidのデータを作成する。 
-               my $executelist = $timelinelog->find({ 'execute' => $jsonobj->{execute}, 'hitname' => {'$exists' => 1} });
+               # 履歴を読んでカウントアップする 
+               my $memcountobj = $membercount->find_one_and_delete({'userid'=>"$jsonobj->{execute}"});
+               my $pcnt = 0;
+                  $pcnt = $memcountobj->{count} if ($memcountobj ne 'null');
+                  $pcnt = ++$pcnt;
+                  $self->app->log->debug("DEBUG: pcnt: $pcnt");
+                  $memcountobj->{count} = $pcnt;
+                  $memcountobj->{userid} = $jsonobj->{execute};
+                  delete $memcountobj->{_id};
 
-               my @execute = $executelist->all;
-               my $pcnt = $#execute + 1;
+            #   my $debug = to_json($memcountobj);
+            #      $self->app->log->info("DEBUG: count entry: $debug");
+                  $membercount->insert_one($memcountobj); 
+            #   undef $debug;
 
-               $self->redis->set( "GHOSTGET$jsonobj->{execute}" => $pcnt );
+             #撃墜結果を集計  上記の方式に変更    
+          #NPCが接続した状態で、executeしたuidのデータを作成する。logに3ヶ月のリミットを付けたのでこの方式は使えない 
+          #     my $executelist = $timelinelog->find({ 'execute' => $jsonobj->{execute}, 'hitname' => {'$exists' => 1} });
+          #     my @execute = $executelist->all;
+          #     my $pcnt = $#execute + 1;
+
+               $redis->set( "GHOSTGET$jsonobj->{execute}" => $pcnt );
 
               #ランキング処理
               #この処理はNPCが行うので接続情報はNPCになる。従って、攻撃シグナルにexecemailを追加して、emailでsidを検索出来るように修正した。
-               $self->redis->zadd('gscore', "$pcnt", "$jsonobj->{execemail}");
+               $redis->zadd('gscore', "$pcnt", "$jsonobj->{execemail}");
 
-               undef @execute;
+          #     undef @execute;
+               undef $memcountobj;
                undef $pcnt;
                undef $jsonobj;
                return;
                }
-
 
       # 攻撃シグナルの送信 toにuserid
            if ( $jsonobj->{to} ) {
               $self->app->log->debug("DEBUG: $username Attack send: $msg");
 
                       # TTLレコードを追加する。
-                      $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
+                  #    $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
+                      $jsonobj->{ttl} = DateTime->now();  
                       $timelinecoll->insert($jsonobj);
                    #   $timelinelog->insert($jsonobj); # hitnameパラメータを記録するのでtoはLOGから除外する。
 
@@ -306,15 +325,29 @@ sub echo {
                  $makerobj->{userid} = $makeruid;
                  $makerobj = { %$makerobj,ttl => DateTime->now() };
               my $makerobj_json = to_json($makerobj);
-                 $self->redis->set("Maker$makeruid" => $makerobj_json);
-                 $self->redis->expire("Maker$makeruid" => 1800);
+                 $redis->set("Maker$makeruid" => $makerobj_json);
+                 $redis->expire("Maker$makeruid" => 600);
 
               return;
             } #putmaker
 
+          # trapmemberlist 書き込み
+          if ( defined $jsonobj->{eventmaker} ){
+
+               $jsonobj->{eventmaker}->{ttl} = DateTime->now();  
+
+               my $debug = to_json($jsonobj->{eventmaker});
+               $self->app->log->debug("DEBUG: trapmemberlist: $debug");
+               undef $debug;
+
+               $trapmemberlist->insert_one($jsonobj->{eventmaker});
+            return;
+          } #eventmaker
+
        # 以下、map系のメッセージ処理
            # TTLレコードを追加する。
-           $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
+         #  $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
+           $jsonobj->{ttl} = DateTime->now();  
 
            $self->app->log->debug("DEBUG: $username msg: $msg");
 
@@ -360,7 +393,7 @@ sub echo {
 
             my @all_points_sort = sort { $b->{time} <=> $a->{time} } @all_points;
 
-            # push時にgrepで重複を弾く
+            # push時にgrepで重複を弾く 書き込み時に削除を行っているのでこの処理は保険
             my @pointlist = ();
                foreach my $po ( @all_points_sort){
                    push(@pointlist,$po) unless grep { $_->{userid} =~ /^\Q$po->{userid}\E$/ } @pointlist;
@@ -372,11 +405,11 @@ sub echo {
 
        #makerをredisから抽出して、距離を算出してリストに加える。
 
-             my $makerkeylist = $self->redis->keys("Maker*");
+             my $makerkeylist = $redis->keys("Maker*");
              my @makerlist = ();
 
              foreach my $aline (@$makerkeylist) {
-                       my $makerpoint = from_json($self->redis->get($aline));
+                       my $makerpoint = from_json($redis->get($aline));
 
                       # radianに変換
                       my @s_p = NESW($userobj->{loc}->{lng}, $userobj->{loc}->{lat});
@@ -397,6 +430,71 @@ sub echo {
                       $clients->{$id}->send($jsontext);
                       $self->app->log->debug("DEBUG: $username geo_points: $jsontext");
 
+               # trapeventのヒット判定
+               my $trapmember_cursole = $trapmemberlist->query({ location => { 
+                                                           '$nearSphere' => {
+                                                           '$geometry' => {
+                                                            type => "point",
+                                                                "coordinates" => [ $jsonobj->{loc}->{lng} , $jsonobj->{loc}->{lat} ]}, 
+                                                           '$minDistance' => 0,
+                                                           '$maxDistance' => 1 
+                                     }}});
+
+               my @trapevents = $trapmember_cursole->all;
+
+          #     my $debug = to_json(@trapevents);
+          #     $self->app->log->debug("DEBUG: trapevents: $debug");
+          #     undef $debug;
+
+               if ( $#trapevents != -1 ){
+                   $self->app->log->debug("DEBUG: TRAP on Event!!!!!!!");
+
+                   my $memcountobj = $membercount->find_one_and_delete({'userid'=>$userid});
+                   my $pcnt = 0;
+                      $pcnt = $memcountobj->{count} if ($memcountobj ne 'null');
+                      $pcnt = --$pcnt;
+                      $self->app->log->debug("DEBUG: trap: on $username pcnt: $pcnt");
+                      $memcountobj->{count} = $pcnt;
+                      $memcountobj->{userid} = $userid;
+                      delete $memcountobj->{_id};
+                      $membercount->insert($memcountobj); 
+                      # redisを更新
+                      $redis->zadd('gscore', "$pcnt", $email);
+
+                       #Chat表示 トラップ発動時に表示する
+                       #日付設定 重複記述あり
+                       my $dt = DateTime->now( time_zone => 'Asia/Tokyo');
+                       # TTLレコードを追加する。
+                       my $ttl = DateTime->now();
+
+                       my $chatobj = { geometry => $jsonobj->{geometry},
+                                            loc => $jsonobj->{loc},
+                                       icon_url => $icon_url,
+                                       username => $username,
+                                            hms => $dt->hms,
+                                           chat => "$trapevents[0]->{message}",
+                                            ttl => $ttl,
+                                     };
+
+                        # walkchatへの書き込み
+                        $walkchatcoll->insert($chatobj);
+                        $self->app->log->debug("DEBUG: $username insert chat");
+
+                        my $chatjson = to_json($chatobj);
+
+                        # 書き込み通知
+                        $redis->publish( $chatname , $chatjson );
+                        $redis->expire( $chatname => 3600 );
+                        $self->app->log->debug("DEBUG: $username publish WALKCHAT");
+
+                   for my $i (@trapevents){
+                       my $debug = to_json($i);
+                   # delete trapevent
+                       $self->app->log->debug("DEBUG: drop: $debug");
+                       $trapmemberlist->delete_one({ 'email' => $i->{email}});
+                   }
+               } # if
+
                    undef @pointlist;
                    undef @makerlist;
                    undef $listhash;
@@ -412,7 +510,7 @@ sub echo {
         delete $clients->{$id};
 
         #redis unsubscribe
-        $self->redis->unsubscribe(\@chatArray);
+        $redis->unsubscribe(\@chatArray);
 
      # 再接続で利用するから。
      #   undef $timelinecoll;
@@ -427,7 +525,7 @@ sub echo {
 sub NESW { deg2rad($_[0]), deg2rad( 90 - $_[1]) }
 
 #redis receve
-     $self->redis->on(message => sub {
+     $redis->on(message => sub {
                   my ($redis,$mess,$channel) = @_;
                       $self->app->log->debug("DEBUG: on channel:($username) $mess");
 
@@ -460,17 +558,17 @@ sub NESW { deg2rad($_[0]), deg2rad( 90 - $_[1]) }
                        return;
                   });  # redis on message
 
-     $self->redis->subscribe(\@chatArray, sub {
+     $redis->subscribe(\@chatArray, sub {
                    my ($redis, $err) = @_;
                  #     return $redis->publish( $chatname => $err) if $err;
                       $self->app->log->debug("DEBUG: $username redis subscribe");
                       return $redis->incr(@chatArray);
                    });
-     $self->redis->expire( \@chatArray => 3600 );
+     $redis->expire( \@chatArray => 3600 );
 
-     $self->redis->on(error => sub {
+     $redis->on(error => sub {
                    my ($redis,$err) = @_;
-                      $self->app->log->info("DEBUG: $username redis error: $err");
+                      $self->app->log->debug("DEBUG: $username redis error: $err");
                    });
 
       # 複数クライアントに対応している為 websocket毎に stream_ioはあまり意味がないのか？送信するわけでも無いから
@@ -679,7 +777,7 @@ sub echo3 {
 
      $self->redis->on(error => sub {
                    my ($redis,$err) = @_;
-                      $self->app->log->info("DEBUG: $userid redis error: $err");
+                      $self->app->log->debug("DEBUG: $userid redis error: $err");
                    });
 
   my $stream = Mojo::IOLoop->stream($self->tx->connection);
