@@ -287,7 +287,8 @@ sub echo {
           #     my @execute = $executelist->all;
           #     my $pcnt = $#execute + 1;
 
-               $redis->set( "GHOSTGET$jsonobj->{execute}" => $pcnt );
+          # gscoreに切り替え 不使用
+          #     $redis->set( "GHOSTGET$jsonobj->{execute}" => $pcnt );
 
               #ランキング処理
               #この処理はNPCが行うので接続情報はNPCになる。従って、攻撃シグナルにexecemailを追加して、emailでsidを検索出来るように修正した。
@@ -323,7 +324,8 @@ sub echo {
               my $makeruid = Sessionid->new($userid)->uid;
               my $makerobj = $jsonobj->{putmaker};
                  $makerobj->{userid} = $makeruid;
-                 $makerobj = { %$makerobj,ttl => DateTime->now() };
+            #     $makerobj = { %$makerobj,ttl => DateTime->now() };
+                 $makerobj->{ttl} = DateTime->now();
               my $makerobj_json = to_json($makerobj);
                  $redis->set("Maker$makeruid" => $makerobj_json);
                  $redis->expire("Maker$makeruid" => 600);
@@ -429,8 +431,9 @@ sub echo {
                    my $jsontext = to_json($listhash); 
                       $clients->{$id}->send($jsontext);
                       $self->app->log->debug("DEBUG: $username geo_points: $jsontext");
+          # map系終了
 
-               # trapeventのヒット判定
+          # trapeventのヒット判定
                my $trapmember_cursole = $trapmemberlist->query({ location => { 
                                                            '$nearSphere' => {
                                                            '$geometry' => {
@@ -588,6 +591,7 @@ sub pointget {
     my $self = shift;
   # mongodbからredisに移行
     my $uid = $self->stash('uid');
+    my $email = $self->stash('email');
 
     my $config = $self->app->plugin('Config');
     my $sth_sessionid = $self->app->dbconn->dbh->prepare("$config->{sql_sessionid_chk}");
@@ -600,7 +604,8 @@ sub pointget {
 #    my @execute = $executelist->all;
 #    my $pcnt = $#execute + 1;
 
-    my $pcnt = $self->redis->get("GHOSTGET$uid");
+#    my $pcnt = $self->redis->get("GHOSTGET$uid");
+    my $pcnt = $self->redis->zscore('gscore',$email);
     my $emails = $self->redis->zrevrange("gscore", 0, 10); #配列だけど中はテキスト
     ##   $self->app->log->info("DEBUG: redis gscore: $sids");
     if ( ! defined $pcnt ) { $pcnt = "Not collect" };
@@ -662,6 +667,7 @@ sub echo3 {
 
     my $wwdb = $self->app->mongoclient->get_database('WalkWorld');
     my $timelinecoll = $wwdb->get_collection('MemberTimeLine');
+    my $trapmemberlist = $wwdb->get_collection('trapmemberlist');
 
     my $wwdblog = $self->app->mongoclient->get_database('WalkWorldLOG');
     my $timelinelog = $wwdblog->get_collection('MemberTimeLinelog');
@@ -714,6 +720,21 @@ sub echo3 {
                  undef $jsontext;
               }
 
+           if ( defined($jsonobj->{trapevent})) {
+
+              my $trapevent = $trapmemberlist->find({ "name" => $jsonobj->{trapevent} });
+              my @trappointlist = $trapevent->all;
+              my $listhash = { 'upointlist' => \@trappointlist };
+              my $jsontext = to_json($listhash);
+                 $self->tx->send($jsontext);
+                 $self->app->log->debug("DEBUG: trap_point_list: $jsontext");
+
+                 undef $trapevent;
+                 undef @trappointlist;
+                 undef $listhash;
+                 undef $jsontext;
+              }
+
            my $geo_points_cursole = $timelinecoll->query({ "geometry" => { 
                                            '$nearSphere' => [ $jsonobj->{loc}->{lng} , $jsonobj->{loc}->{lat} ], 
                                         #   '$maxDistance' => 1 
@@ -748,6 +769,8 @@ sub echo3 {
   $self->on(finish => sub {
         my ($self,$msg) = @_;
         $self->app->log->debug("DEBUG: On finish!!");
+
+        $self->redis->unsubscribe(@chatArray);
     });
 
 #redis receve

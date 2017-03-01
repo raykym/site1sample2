@@ -326,7 +326,17 @@ function wsCall(aCallback){
       ws.send(messjson);
       console.log("DEBUG: " + messjson );
       $('#uname').val('');
-      $('#sendfile').val('');
+      }
+    });
+
+    $('#trapevent').keydown(function (e) {
+      if (e.keyCode == 13 && $('#trapevent').val()) {
+
+      var mess = {"trapevent":$('#trapevent').val()};
+      var messjson = JSON.stringify(mess);
+      ws.send(messjson);
+      console.log("DEBUG: " + messjson );
+      $('#trapevent').val('');
       }
     });
 
@@ -377,6 +387,7 @@ function keyInput(){
   <div class="ui-grid-a">
     <div class="ui-block-a"><div class="ui-bar"  style="hight: 60px"><button type="button" class="ui-btn " onClick="keyInput();" style="background-color: #aac78d; font-size: x-small;"><img id="arrow" class="arrow" src="/img/cyrclearrow_mos.png" width="45" hight="45"/><BR>GPS</button></div></div>
     <div class="ui-block-b"><div class="ui-bar"  style="hight: 60px"><p><input type="text" id="uname" placeholder="uname..."></p>
+        <p><input type="text" id="trapevent" placeholder="event name..."></p>
         <p>接続判定：<a id="output"></a></p></div></div>
   </div> <!-- ui-grid-a -->
   <div style="border: 1px solid; background-color: #bbd89e;"><text id="textarea"></text></div>
