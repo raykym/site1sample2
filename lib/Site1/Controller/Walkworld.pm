@@ -113,7 +113,8 @@ sub echo {
        $icon_url = "/imgcomm?oid=$icon" if (! defined $icon_url);
 
     my $chatname = "WALKCHAT";
-    my @chatArray = ( $chatname );
+    my $attackCH = "ATTACHCHN"; # 送信のみ NPCは受信する
+    my @chatArray = ( $chatname, $attackCH );
 
     my $delay_once = 'true';
 
@@ -151,6 +152,8 @@ sub echo {
         foreach my $line (@allcursole){
               $clients->{$id}->send({json => $line });
         }
+
+           undef $walkchat_cursole;
 
            $self->app->log->debug("DEBUG: $username delay BLOCK END!");
            $delay_once = 'false';
@@ -308,8 +311,11 @@ sub echo {
                       # TTLレコードを追加する。
                   #    $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
                       $jsonobj->{ttl} = DateTime->now();  
-                      $timelinecoll->insert($jsonobj);
+                   #   $timelinecoll->insert($jsonobj);
                    #   $timelinelog->insert($jsonobj); # hitnameパラメータを記録するのでtoはLOGから除外する。
+                      my $jsontext = to_json($jsonobj);
+                      $self->redis->publish("$attackCH", $jsontext);
+                      undef $jsontext;
 
                       $self->app->log->debug("DEBUG: $username execute Command write....");
 
@@ -494,7 +500,7 @@ sub echo {
                        my $debug = to_json($i);
                    # delete trapevent
                        $self->app->log->debug("DEBUG: drop: $debug");
-                       $trapmemberlist->delete_one({ 'email' => $i->{email}});
+                       $trapmemberlist->delete_one({ '_id' => $i->{_id}});
                    }
                } # if
 
@@ -503,6 +509,8 @@ sub echo {
                    undef $listhash;
                    undef $jsontext;
                    undef $geo_points_cursole;
+                   undef @trapevents;
+                   undef $trapmember_cursole;
 
   }); # on message
 
@@ -621,6 +629,7 @@ sub pointget {
         my $sid = $get_value->{sessionid}; 
 
        my $acc = $self->redis->get("SID$sid");
+          if ( ! defined $acc ) { next; }  # redisにユーザー情報がない場合はパスする。
        my $cnt = $self->redis->zscore('gscore',"$i");
           $acc = from_json($acc);
           $acc->{count} = $cnt;
@@ -805,7 +814,7 @@ sub echo3 {
 
   my $stream = Mojo::IOLoop->stream($self->tx->connection);
         $stream->timeout(0);  # no timeout!
-        $self->inactivity_timeout(10000);
+        $self->inactivity_timeout(70000); # 70sec
 
 }
 

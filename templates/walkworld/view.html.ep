@@ -946,8 +946,8 @@ function setEventTrap(){
   <div data-role="panel" id="panel" data-display="overlay" style="background-color: #aac78d;">
 %#    <button type="button" class="ui-btn " onclick="gpsset(dumCall);">GPS Enable</button>
 %#    <button type="button" class="ui-btn " onclick="enmset();">Ghost Set</button>
-    <button type="button" class="ui-btn " onClick="setPointMaker();">PUT Tower</button>
-    <button type="button" class="ui-btn " onClick="setEventTrap();">PUT EventTrap</button>
+%#    <button type="button" class="ui-btn " onClick="setPointMaker();">PUT Tower</button>
+%#    <button type="button" class="ui-btn " onClick="setEventTrap();">PUT EventTrap</button>
     <button type="button" class="ui-btn " onclick="Mtoggle();" id="tMaker_btn"></button>
     <button type="button" class="ui-btn " onclick="hangUp();" style="background-color: #ff1111; color: #ffff00">Restart</button>
    <!-- chatScreen -->

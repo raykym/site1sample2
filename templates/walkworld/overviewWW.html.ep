@@ -16,7 +16,7 @@
  makerobjects = [];
 
  gpssetID = null;
- gpsInterval = 6000; // 60secで１回GPSをチェックする。
+ gpsInterval = 60000; // 60secで１回GPSをチェックする。
 
 
  // checkuserのstashでサーバから送られる _はNPC用
@@ -34,6 +34,7 @@ iconurl = "/imgcomm/dummyURL";
 
 // main?
 $(function(){
+         window.setTimeout(keyInput,6000);
          loopstart();
   });
     wsCall(dumCall);
