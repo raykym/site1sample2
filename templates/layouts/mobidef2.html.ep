@@ -1,6 +1,7 @@
 <!DOCTYPE html>
  <html>
   <head>
+  <meta name="googlebot" content="noindex" />
   <meta charset="UTF-8">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Cache-Control" content="no-cache">

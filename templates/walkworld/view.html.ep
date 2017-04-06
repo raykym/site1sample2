@@ -485,13 +485,31 @@ function getPosition(aCallback){
          console.log("Marker SET");
 
                   makerobj.setMap(null);
+       
+             var hit_tar = tar_get.filter( function(element, index){
+                   console.log("DEBUG: hit count " + onCount);
+                   return element.distance <  dist_shl;
+                 });
 
                   makerobj = new google.maps.Marker({
                                position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
                                map: mapobj,
-                               title: "mySelf"
+                               title: "mySelf",
                           });
+      
+               if (typeof hit_tar[0] !== 'undefined'){
+                  image = 'https://westwind.iobb.net/img/target_icon.png';  
+                  makerobj.setMap(null);
+                  makerobj = new google.maps.Marker({
+                               position: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+                               map: mapobj,
+                               title: "mySelf",
+                               icon : image
+                          });
+                  } 
+
                    console.log("Marker:" + position.coords.latitude + "|" + position.coords.longitude);
+                  delete hit_tar;
 
           aCallback(); // for promise
     }  // successCallback
@@ -835,7 +853,7 @@ function keyInput(){
            if (( a == undefined )||( a.x == null )){
               check_cnt++;
               if ( check_cnt == 1 ) {
-                  alert("Shake not SUPPORT Device ,USE 'HIT Emurator Support' AND Arrow UP to North");
+              %#    alert("Shake not SUPPORT Device ,USE 'HIT Emurator Support' AND Arrow UP to North");
                   $("#emuon").prop("disabled", false);
               }
            }
@@ -924,7 +942,6 @@ function setEventTrap(){
     ws.send(JSON.stringify(eventmaker));
 }
 
-
 </script>
 
 <div id="hantei" data-role="page" style="background-color: #aac78d;">
@@ -953,7 +970,7 @@ function setEventTrap(){
    <!-- chatScreen -->
     <div style="overflow: scroll; width: 250px; height: 400px; border: 1px solid">
         <p><input type="text" id="msg" placeholder="message..."></p>
-        <p><input type="button" disabled="disabled" onClick="record()" value="SOUND INPUT" /></p>
+%#        <p><input type="button" disabled="disabled" onClick="record()" value="SOUND INPUT" /></p>
         <ul id="output_chat" data-role="listview" data-inset="true"></ul>
     </div>
   </div>
@@ -964,17 +981,23 @@ function setEventTrap(){
   </div>
   <div id="gmap" class="mapbase" style="width : 100%; height : 360px;"></div>
   <div class="ui-grid-a">
-    <div class="ui-block-a"><div class="ui-bar"  style="hight: 60px"><button type="button" class="ui-btn " onClick="keyInput();" style="background-color: #aac78d; font-size: x-small;"><img id="arrow2" class="arrow2" src="/img/arrow.png" width="45" hight="45"/><img id="arrow" class="arrow" src="/img/cyrclearrow_mos.png" width="45" hight="45"/><BR>Head | ghost</button>
-    <button id="emuon" type="button" class="ui-btn" onClick="hitEmure();" style="background-color: #aac78d;" disabled='disabled'>Exorcise Strike</button>
-    </div>
-    </div>
+%#    <div class="ui-block-a"><div class="ui-bar"  style="hight: 60px"><button type="button" class="ui-btn " onClick="keyInput();" style="background-color: #aac78d; font-size: x-small;"><img id="arrow2" class="arrow2" src="/img/arrow.png" width="45" hight="45"/><img id="arrow" class="arrow" src="/img/cyrclearrow_mos.png" width="45" hight="45"/><BR>Head | ghost</button>
+    <div class="ui-block-a"><div class="ui-bar"  style="hight: 60px"><button type="button" class="ui-btn " onClick="keyInput();" style="background-color: #aac78d; font-size: x-small;"><img id="arrow" class="arrow" src="/img/cyrclearrow_mos.png" width="45" hight="45"/><BR>gps</button>
+    </div> <!-- ui-block-a -->
+    </div> <!-- ui-grid-a -->
     <div class="ui-block-b">
                           <div class="ui-bar"  style="hight: 60px">
                                Network：<text id="output"></text>
-                               Distance : <text id="output_d"></text>
+                          %#     Distance : <text id="output_d"></text>
                           </div>
-                          <button type="button" class="ui-btn " onClick="setPointMaker();" style="background-color: #aac78d;" >PUT Tower</button>
-                          <button type="button" class="ui-btn " onClick="setEventTrap();" style="background-color: #aac78d;" >PUT EventTrap</button>
+            <div data-role="collapsible" data-mini="true" style="background-color: #aac78d;">
+             <h4>Commands</h4>
+                <ul data-role="listview" style="background-color: #aac78d;">
+                <button id="emuon" type="button" class="ui-btn" onClick="hitEmure();" style="background-color: #aac78d;" disabled='disabled'>Exorcise Strike</button>
+                <button type="button" class="ui-btn " onClick="setPointMaker();" style="background-color: #aac78d;" >PUT Tower</button>
+                <button type="button" class="ui-btn " onClick="setEventTrap();" style="background-color: #aac78d;" >PUT EventTrap</button>
+                </ul>
+            </div> <!-- collapsible -->
     </div>
   </div> <!-- ui-grid-a -->
   <div style="border: 1px solid; background-color: #bbd89e;"><text id="textarea"></text></div>

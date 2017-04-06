@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use Test::More;
+use feature 'say';
 
 use lib '/home/debin/perlwork/mojowork/server/site1/lib/Site1';
 use Inputchk;
@@ -25,6 +26,7 @@ my $got = $obj->result;
 
 };
 
+say "";
 subtest 'no input check' => sub {
    local $SIG{__WARN__} = sub { fail shift };
 
@@ -43,6 +45,7 @@ my $got = $obj->result;
 
 };
 
+say "";
 subtest 'CR contain check' => sub {
    local $SIG{__WARN__} = sub { fail shift };
 
@@ -61,10 +64,11 @@ my $got = $obj->result;
 
 };
 
+say "";
 subtest 'nomal contain check' => sub {
    local $SIG{__WARN__} = sub { fail shift };
 
-my $str = 'ピエロ';
+my $str = 'ピエロ';  # 部分一致はパスする
 my $obj = Inputchk->new($str);
    $obj->ngword;
 
@@ -78,5 +82,6 @@ my $got = $obj->result;
    is $got,0; 
 
 };
+
 
 done_testing;

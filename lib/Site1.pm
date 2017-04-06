@@ -3,6 +3,7 @@ use Mojo::Base 'Mojolicious';
 use DBIx::Connector;
 use Mojolicious::Plugin::OAuth2;
 use MongoDB;
+use Mango;
 use Mojo::Redis2;
 
 sub startup {
@@ -51,9 +52,9 @@ sub startup {
             });
 
    # $self->app->mango mongodb3.0 need...
-   #$self->app->helper(mango =>
-   #     sub { state $mango = Mango->new('mongodb://192.168.0.5:27017');
-   #         });
+   $self->app->helper(mango =>
+        sub { state $mango = Mango->new('mongodb://192.168.0.5:27017');
+            });
 
    # $self->app->redis
    $self->app->helper( redis =>

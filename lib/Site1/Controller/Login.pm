@@ -117,20 +117,14 @@ sub usercheck {
     # 認証が必要な場合すべてこのパスを通過する
     # redisでキャッシュして応答速度を上げる
 
-       $self->app->log->debug('Notice: Usercheck ON!');
+#       $self->app->log->debug('Notice: Usercheck ON!');
 
-    # DB接続
-    my $config = $self->app->plugin('Config');
-    my $sth_sid_chk = $self->app->dbconn->dbh->prepare("$config->{sql_sid_chk}");
-    my $sth_user_chk = $self->app->dbconn->dbh->prepare("$config->{sql_user_chk}");
-    my $sth_chktimeupdate = $self->app->dbconn->dbh->prepare("$config->{sql_chktime_update}");
-    my $sth_atoken_update_sid = $self->app->dbconn->dbh->prepare("$config->{sql_atoken_update_sid}");
 
     my $sid = $self->cookie('site1');
 
     # cookieが取れない->リダイレクト
     if ( ! defined $sid ){ 
-        $self->app->log->debug('Notice: Not get Cookie!');
+#        $self->app->log->debug('Notice: Not get Cookie!');
         $self->redirect_to('/');
         return;
       }
@@ -144,8 +138,8 @@ sub usercheck {
 
              my $userobj = from_json($userredis);
 
-             $self->app->log->debug("DEBUG: redis: $userredis");
-             $self->app->log->debug("DEBUG: redis: $userobj->{email}");
+#             $self->app->log->debug("DEBUG: redis: $userredis");
+#             $self->app->log->debug("DEBUG: redis: $userobj->{email}");
 
         # $iconを無くす方向で考えていたが、表示で利用していたので削除出来なかった。
             $self->stash( email => $userobj->{email} );
@@ -161,6 +155,12 @@ sub usercheck {
         return 1;
         }
 
+    # DB接続
+    my $config = $self->app->plugin('Config');
+    my $sth_sid_chk = $self->app->dbconn->dbh->prepare("$config->{sql_sid_chk}");
+    my $sth_user_chk = $self->app->dbconn->dbh->prepare("$config->{sql_user_chk}");
+    my $sth_chktimeupdate = $self->app->dbconn->dbh->prepare("$config->{sql_chktime_update}");
+    my $sth_atoken_update_sid = $self->app->dbconn->dbh->prepare("$config->{sql_atoken_update_sid}");
 
     # sidからチェック開始 (signup_tbl)
        $sth_sid_chk->execute($sid);
@@ -174,9 +174,9 @@ sub usercheck {
        $sth_user_chk->execute($email);
     my $get_uname = $sth_user_chk->fetchrow_hashref();
     my $username = $get_uname->{username};
-       $self->app->log->debug("DEBUG: username(local): $username") if ( defined $username);
+#       $self->app->log->debug("DEBUG: username(local): $username") if ( defined $username);
     my $uid = $get_uname->{uid};
-       $self->app->log->debug("DEBUG: uid(local): $uid") if ( defined $uid);
+#       $self->app->log->debug("DEBUG: uid(local): $uid") if ( defined $uid);
     my $icon = $get_uname->{icon};
     # $iconが空ならNow printingが設定される。
        if (! defined $icon ) { $icon = 'nowprint';}
@@ -221,13 +221,13 @@ sub usercheck {
 
             # リフレッシュトークンの取得失敗
                if (( defined $value->{error} ) || ( $new_token == "null" )){
-                   $self->app->log->debug('Notice: refresh token MISS TAKE');
+#                   $self->app->log->debug('Notice: refresh token MISS TAKE');
                    $self->redirect_to('/');
                    return;
                   }
 
                   $atoken = $data->{access_token};
-                  $self->app->log->debug("DEBUG: new access_token: $atoken");
+#                  $self->app->log->debug("DEBUG: new access_token: $atoken");
                
                $sth_atoken_update_sid->execute($atoken,$sid);
 
@@ -251,11 +251,11 @@ sub usercheck {
 
     my $valueobj = encode_json($value);
        $email = $value->{emails}->[0]->{value} unless $email; # 無ければ
-       $self->app->log->debug("DEBUG: email: $email");
+#       $self->app->log->debug("DEBUG: email: $email");
        $username = $value->{displayName} unless $username; #無ければ
-       $self->app->log->debug("DEBUG: displayName: $username");
+#       $self->app->log->debug("DEBUG: displayName: $username");
        $icon_url =$value->{image}->{url};
-       $self->app->log->debug("DEBUG: icon_url: $icon_url") if (defined $icon_url);
+#       $self->app->log->debug("DEBUG: icon_url: $icon_url") if (defined $icon_url);
     my $gpid = $value->{id};
 
        $uid = Sessionid->new($gpid)->guid unless $uid; #無ければ
@@ -294,7 +294,7 @@ sub usercheck {
 
     my $jsonobj = { email => $email, username => $username, uid => $uid, icon => $icon, icon_url => $icon_url };
     my $jsontext = to_json($jsonobj);
-    $self->app->log->info("DEBUG: set redis: $jsontext ");
+#    $self->app->log->info("DEBUG: set redis: $jsontext ");
 
        $self->redis->set($userredisid => $jsontext);
        $self->redis->expire( $userredisid => $expireterm);

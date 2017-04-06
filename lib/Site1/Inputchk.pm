@@ -143,7 +143,7 @@ sub ngword {
         }
 
    undef $str;
-   undef @ngword;
+ #  undef @ngword;  #パフォーマンスを優先するとundefしない、
 
   } #ngword
 
