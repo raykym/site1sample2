@@ -88,12 +88,14 @@
                                     });
 
                            memlist_diff_cp = JSON.parse(JSON.stringify(memlist_diff)); //copy
+                       var oldlist = new Array;
 
                          %# 再接続の場合、リストに２重登録が起きるので、memlist_diffからmemberlist内を除外する
                                 memberlist.filter( function(e,i){
-                                    memlist_diff_cp.filter( function( e2, i2 ){
+                                  oldlist = memlist_diff_cp.filter( function( e2, i2 ){
                                            if ( e === e2 ) {
                                                   memlist_diff.splice(i2,1);  // memlist_diffの重複したindexを除外
+                                                  return e;
                                                   }
                                         });
                                 });
@@ -126,6 +128,18 @@
 
         %#    //空にする 参加者が追加される度に更新される。
         %#    $("#userlist").empty();
+
+                %# oldlistを削除する。
+                  if (typeof oldlist !== 'undefined') {
+                   if ( oldlist.length != 0 ){
+                   for ( var i=0 ; i < oldlist.length ; i++){
+                       var delline = oldlist[i];
+                           delline = JSON.parse(delline);
+
+                    $("#userlist").remove("<li><button><img src='" + delline.icon_url + "' width='50' height='50'>[" + delline.username + "]<video id=" + delline.connid +" autoplay controls width='350' hight='350'></video></button></li>");
+                      } // for
+                   } //if length
+                   } //if defined
 
                 for (i=0; i<memlist_diff.length; i++){
                     var resline = JSON.parse(memlist_diff[i]);

@@ -81,12 +81,14 @@
                                     }); 
 
                            memlist_diff_cp = JSON.parse(JSON.stringify(memlist_diff)); //copy
+                        var oldlist = new Array;
 
                          %# 再接続の場合、リストに２重登録が起きるので、memlist_diffからmemberlist内を除外する
                                 memberlist.filter( function(e,i){
-                                    memlist_diff_cp.filter( function( e2, i2 ){
+                                 oldlist = memlist_diff_cp.filter( function( e2, i2 ){
                                            if ( e === e2 ) { 
                                                   memlist_diff.splice(i2,1);  // memlist_diffの重複したindexを除外
+                                                  return e;
                                                   }
                                         });
                                 });
@@ -102,6 +104,18 @@
                   connid = evt.from;   // global定義
         %#        console.log("view connid:" + connid);
         %#        console.log("memlist.length:" + memlist.length);
+
+                %# oldlistを削除する。
+                  if (typeof oldlist !== 'undefined') {
+                   if ( oldlist.length != 0 ){
+                   for ( var i=0 ; i < oldlist.length ; i++){
+                       var delline = oldlist[i];
+                           delline = JSON.parse(delline);
+
+                    $("#userlist").remove("<li><button><img src='" + delline.icon_url + "' width='50' height='50'>[" + delline.username + "]<audio id=" + delline.connid +" autoplay controls></audio></button></li>");
+                      } // for
+                   } //if length
+                   } //if defined
 
                 %# 差分だけ画面に追加する    
                 for (var i=0 ; i< memlist_diff.length; i++ ){
