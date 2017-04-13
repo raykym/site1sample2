@@ -253,11 +253,12 @@ sub webpubsub {
     #redisをチャットでは別で設定する。 Site1.pmで共有設定をするとセッション数が上がりすぎてダメになる
     my $redis ||= Mojo::Redis2->new;
 
-    my $recvlist = '';
-    my @recvArray = ( $sid );
-
     #websocket 確認
+       my $wsid = $self->tx->connection;
        $self->app->log->debug(sprintf 'Client connected: %s', $self->tx->connection);
+
+    my $recvlist = '';
+    my @recvArray = ( $wsid );
 
     # WebSocket接続維持設定
        my $stream = Mojo::IOLoop->stream($self->tx->connection);
@@ -274,8 +275,8 @@ sub webpubsub {
                    # $msgはJSONキャラを想定
                    my $jsonobj = from_json($msg);
 
-                  # fromとしてsidを付加
-                      $jsonobj->{from} = $sid;
+                  # fromとしてwsidを付加
+                      $jsonobj->{from} = $wsid;
 
                   if ( $jsonobj->{dummy} ) {
                        # dummy pass
@@ -294,13 +295,13 @@ sub webpubsub {
 
                       $redis->expire( \@recvArray => 1800 );
 
-                      my $entry = { connid => $sid, username => $username, icon_url => $icon_url };
+                      my $entry = { connid => $wsid, username => $username, icon_url => $icon_url };
 
                       my $entry_json = to_json($entry);
 
                       #list用キーの設定
-                      $redis->set("ENTRY$recvlist$sid" => $entry_json);
-                      $redis->expire( "ENTRY$recvlist$sid" => 1800 );
+                      $redis->set("ENTRY$recvlist$wsid" => $entry_json);
+                      $redis->expire( "ENTRY$recvlist$wsid" => 1800 );
 
                       $self->app->log->debug("DEBUG: $username entry finish.");
 
@@ -324,7 +325,7 @@ sub webpubsub {
                          $self->app->log->debug("DEBUG: altmemberlist: $altmemberlistdump"); 
 
                       # 配列で１ページ分を送る。
-                      my $memberlist_json = to_json( { from => $sid, type => "reslist", reslist => $altmemberlist } );   
+                      my $memberlist_json = to_json( { from => $wsid, type => "reslist", reslist => $altmemberlist } );   
  
                          $self->app->log->debug("DEBUG: memberlist: $memberlist_json ");
 
@@ -360,7 +361,7 @@ sub webpubsub {
 
                    # redisのエントリーを削除
                    $redis->unsubscribe(\@recvArray);
-                   $redis->del("ENTRY$recvlist$sid");
+                   $redis->del("ENTRY$recvlist$wsid");
 
          return;
         });  # onfinish...
@@ -369,7 +370,7 @@ sub webpubsub {
          $redis->on(message => sub {
                 my ($redis,$mess,$channel) = @_;
 
-                   if (( $channel eq $recvlist ) || ( $channel eq $sid )) {
+                   if (( $channel eq $recvlist ) || ( $channel eq $wsid )) {
                         $self->app->log->debug("DEBUG: $username redis on message: $channel | $mess ");
                         $self->tx->send($mess); # redisは受信したらwebsocketで送信
                       }
@@ -384,11 +385,11 @@ sub webpubsub {
         $redis->expire( \@recvArray => 1800 );
 
         #個別送信用
-  #      $redis->subscribe($sid, sub {
+  #      $redis->subscribe($wsid, sub {
   #               my ($redis, $err) = @_;
-  #                     return $redis->incr($sid);
+  #                     return $redis->incr($wsid);
   #               });
-  #      $redis->expire( $sid => 1800 );
+  #      $redis->expire( $wsid => 1800 );
 
 #    $self->render(); 
 }

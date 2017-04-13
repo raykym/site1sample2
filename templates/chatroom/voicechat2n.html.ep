@@ -16,17 +16,18 @@
         console.log('Connection opened');
         socketReady = true;
 
- %#   socket_wait = setInterval(function (){
- %#      var dummsg = {"dummy":"dummy"};
- %#      ws.send(JSON.stringify(dummsg)); 
- %#      console.log("socket wait sending!");
- %#       }, 50000);
+    socket_wait = setInterval(function (){
+       var dummsg = {"dummy":"dummy"};
+       ws.send(JSON.stringify(dummsg)); 
+       console.log("socket wait sending!");
+        }, 50000);
     };
 
     ws.onclose = function(){
         socketReady = false;
+        clearInterval(socket_wait); // 50sec dummy STOP
         console.log("Close:" + socketReady);
-        alert("please Reload, Reconnect websocket!"); 
+        alert("please Reload, Reconnect websocket! ADD MEMBER LIMIT BUT WEBRTC CONNECTION OK!"); 
     };
 
     ws.onerror = function(){
@@ -51,7 +52,7 @@
                   %# 表示用リスト
                 var memlist = evt.reslist;
 
-        %#        console.log("memlist:" + memlist);
+                console.log("memlist:" + memlist);
 
                 %# リスト表示用処理
            if (evt.type === 'reslist'){
@@ -78,6 +79,17 @@
                                           if (self.indexOf(e) !== self.lastIndexOf(e)) return;
                                           memlist_diff.push(e);  // returnをすり抜けたらpush
                                     }); 
+
+                           memlist_diff_cp = JSON.parse(JSON.stringify(memlist_diff)); //copy
+
+                         %# 再接続の場合、リストに２重登録が起きるので、memlist_diffからmemberlist内を除外する
+                                memberlist.filter( function(e,i){
+                                    memlist_diff_cp.filter( function( e2, i2 ){
+                                           if ( e === e2 ) { 
+                                                  memlist_diff.splice(i2,1);  // memlist_diffの重複したindexを除外
+                                                  }
+                                        });
+                                });
 
                         console.log("DEBUG: memlist_diff: " + JSON.stringify(memlist_diff) );
 

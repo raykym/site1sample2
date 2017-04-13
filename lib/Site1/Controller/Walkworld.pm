@@ -9,8 +9,8 @@ use DateTime;
 use Mojo::IOLoop::Delay;
 use Clone qw(clone);
 use Math::Trig qw(great_circle_distance rad2deg deg2rad pi);
-use EV;
-use AnyEvent;
+#use EV;
+#use AnyEvent;
 
 # 独自パスを指定して自前モジュールを利用
 use lib '/home/debian/perlwork/mojowork/server/site1/lib/Site1';
@@ -79,6 +79,7 @@ sub rcvpush {
 }
 
 my $stream_io = {};
+my $delay_once = {};
 
 my $debugCount = 3;
 
@@ -118,7 +119,7 @@ sub echo {
     my $attackCH = "ATTACHCHN"; # 送信のみ NPCは受信する
     my @chatArray = ( $chatname, $attackCH );
 
-    my $delay_once = 'true';
+    my $delay_once->{$id} = 'true';
 
     my $userobj;  #接続しているuserの位置情報
 
@@ -158,10 +159,10 @@ sub echo {
            undef $walkchat_cursole;
 
 #           $self->app->log->debug("DEBUG: $username delay BLOCK END!");
-           $delay_once = 'false';
+           $delay_once->{$id} = 'false';
            } # delay block
 
-        )->wait if ($delay_once);
+        )->wait if ($delay_once->{$id});
 
       } # NPC bipass block
 
@@ -378,7 +379,7 @@ sub echo {
                                 return;  # この処理が入るとボットはダウンするので終了する。
                                }
 
-           my $asyncv = AE::cv;
+#           my $asyncv = AE::cv;
 
            # 現状の情報を送信 
            # mongo3.2用 3000m以内のデータを返す
@@ -400,8 +401,8 @@ sub echo {
             #データから最新ポイントだけを抽出するには、降順で時刻をsortして、
             my @all_points = $geo_points_cursole->all;
 
-            $asyncv->send(@all_points);
-            $asyncv->recv;
+#            $asyncv->send(@all_points);
+#            $asyncv->recv;
             
          #   my $datadebug = Dumper(@all_points);
          #   $self->app->log->debug("DEBUG: all_points: $datadebug");
@@ -535,6 +536,7 @@ sub echo {
 #        $self->app->log->debug("DEBUG: $username On finish!!");
         delete $clients->{$id};
         delete $stream_io->{$id};
+        delete $delay_once->{$id};
 
         #redis unsubscribe
         $redis->unsubscribe(\@chatArray);
