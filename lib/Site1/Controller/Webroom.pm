@@ -234,6 +234,9 @@ my @recvlist;
 #  $self->render(msg => '');
 }
 
+
+my $stream_io = {};
+
 sub webpubsub {
     my $self = shift;
     # websocket,redisでのpubsub、手続きを簡便に処理する。
@@ -261,8 +264,8 @@ sub webpubsub {
     my @recvArray = ( $wsid );
 
     # WebSocket接続維持設定
-       my $stream = Mojo::IOLoop->stream($self->tx->connection);
-          $stream->timeout(0);
+          $stream_io->{$wsid} = Mojo::IOLoop->stream($self->tx->connection);
+          $stream_io->{$wsid}->timeout(0);
           $self->inactivity_timeout(60000); #60sec
 
     # on message・・・・・・・
@@ -280,6 +283,8 @@ sub webpubsub {
 
                   if ( $jsonobj->{dummy} ) {
                        # dummy pass
+                      $redis->expire( \@recvArray => 300 );
+                      $redis->expire( "ENTRY$recvlist$wsid" => 300 );
                        return;
                       }
  
@@ -293,7 +298,7 @@ sub webpubsub {
                                      return $redis->incr(@recvArray);
                             });
 
-                      $redis->expire( \@recvArray => 1800 );
+                      $redis->expire( \@recvArray => 300 );
 
                       my $entry = { connid => $wsid, username => $username, icon_url => $icon_url };
 
@@ -301,7 +306,7 @@ sub webpubsub {
 
                       #list用キーの設定
                       $redis->set("ENTRY$recvlist$wsid" => $entry_json);
-                      $redis->expire( "ENTRY$recvlist$wsid" => 1800 );
+                      $redis->expire( "ENTRY$recvlist$wsid" => 300 );
 
                       $self->app->log->debug("DEBUG: $username entry finish.");
 
@@ -341,7 +346,7 @@ sub webpubsub {
                      my $jsontxt = to_json($jsonobj);
                      
                      $redis->publish( $jsonobj->{sendto} , $jsontxt);
-                  #   $redis->expire( $jsonobj->{sendto} => 1800 );
+                  #   $redis->expire( $jsonobj->{sendto} => 300 );
                      $self->app->log->debug("DEBUG: sendto: $jsonobj->{sendto} ");
   
                      return;  # スルーすると全体通信になってしまう。
@@ -350,7 +355,7 @@ sub webpubsub {
                   # グループ内通信
                      my $jsontext = to_json($jsonobj);
                      $redis->publish( $recvlist , $jsontext); #websocketで受信したら、redisに送信する
-                  #   $redis->expire( $recvlist => 1800 );
+                  #   $redis->expire( $recvlist => 300 );
                      $self->app->log->debug("DEBUG: publish: $username :  $recvlist : $jsontext");
 
                 }); # onmessageのはず。。。
@@ -362,6 +367,8 @@ sub webpubsub {
                    # redisのエントリーを削除
                    $redis->unsubscribe(\@recvArray);
                    $redis->del("ENTRY$recvlist$wsid");
+
+                   delete $stream_io->{$wsid};
 
          return;
         });  # onfinish...
@@ -382,14 +389,14 @@ sub webpubsub {
                  my ($redis, $err) = @_;
                        return $redis->incr(@recvArray);
                  });
-        $redis->expire( \@recvArray => 1800 );
+        $redis->expire( \@recvArray => 300 );
 
         #個別送信用
   #      $redis->subscribe($wsid, sub {
   #               my ($redis, $err) = @_;
   #                     return $redis->incr($wsid);
   #               });
-  #      $redis->expire( $wsid => 1800 );
+  #      $redis->expire( $wsid => 300 );
 
 #    $self->render(); 
 }

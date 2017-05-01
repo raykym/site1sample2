@@ -10,87 +10,8 @@
     <div role="main" class="ui-content" id='border'>
 
         <div>
-        <h1>TP回復</h1>
-        <a href="http://valhalla-gate.gree-pf.net/Swf/BattleTpRoulette?rnd=7500464" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ルーレット</a>
-        <a href="http://pf.gree.jp/58748/?url=http%3A%2F%2Fvalhalla-gate.gree-pf.net%2FBattle%2FWriteDiary&body%3Frnd%3D3597182U_200CU_200C=" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ひとこと</a>
-        <hr>
-        <h1>前衛</h1>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">通常攻撃</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">優勢攻撃</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10253" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">イグニートランス</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11003" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">聖乙女</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11010" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">光乙女</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11023" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">三顧の礼</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11015" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">紅乙女</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11020" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">仙娘の贈り物</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11007" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">フリズムキャルヴ</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11046" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">妃神の息吹</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10330" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">青龍偃月刀</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10271" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">マイティソード</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10267" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">聖剣ティソーナ</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10259" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">クイーンズブレイド</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10619" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">スウィートウィンド</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10825" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ハーヴェスト</a>
-        <hr>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10230" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">死蝶閃</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10297" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">シェムハザード</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12119" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">悟空無双</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10620" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">アースシェイカー</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12101" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ブリッツクリーク</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12109" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">テラボルテックス</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10227" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ミョルニル</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10338" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">霧雨乱舞</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10264" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">戦姫無双</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12105" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">雷帝の戦斧</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10144" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">鬼神無双</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12155" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">鬼神一騎打ち</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10275" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">神殺しの暴牙</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10609" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">サンダースパーク</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10282" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ライトニングピアーズ</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10604" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ケラウノス</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10333" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">悪路抜刀</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11108" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">オリオンガード</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11118" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">真・オリオンガード</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">変更中</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">変更中</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">変更中</a>
-        </div>
-
-        <div>
-        <h1>後衛</h1>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=60" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">エール</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=61" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">下げエール</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20212" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">如意棒</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20110" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">一騎駆け</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20106" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">乱入電光撃</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20108" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">乱入獄炎撃</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20902" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">英傑号令</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21601" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">天空神号令</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20954" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">雷帝号令</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20962" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">肉まんエール</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21501" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">妃神の輝き</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20119" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">女神の唄</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20118" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ガラシャスペシャル</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21640" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">愛姫鼓舞</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21009" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">怒号</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21312" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ホーリーサークル</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20825" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">桃園の誓い</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21606" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ルーネサークル</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20959" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">星神号令</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21047" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">兵主神の威圧</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21044" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">闇堕ち</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21057" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">電磁の威圧</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21046" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ジャックインパルス</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21012" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">帰蝶の舞</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21415" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">猛将の威圧</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21416" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">終焉の咆哮</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20901" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">神威降臨</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21040" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">雪鬼眼</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21467" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">真・雪鬼眼</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20935" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">進軍号令</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20970" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ホーリーベル</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20921" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">軍神号令</a>
-        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">変更中</a>
+        <object type="text/html" data="http://gree.jp" style="width : 100%; height : 750px;">
+        </object>
         </div>
 
   <!-- panel right -->
@@ -113,6 +34,179 @@
   <!-- panel left -->
   <div data-role="panel" id="panel" data-display="overlay" style="background-color: #aac78d;">
         <div>
+        <h1>TP回復</h1>
+        <a href="http://valhalla-gate.gree-pf.net/Swf/BattleTpRoulette?rnd=7500464" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ルーレット</a>
+        <a href="http://pf.gree.jp/58748/?url=http%3A%2F%2Fvalhalla-gate.gree-pf.net%2FBattle%2FWriteDiary&body%3Frnd%3D3597182U_200CU_200C=" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ひとこと</a>
+        <hr>
+        <h1>前衛</h1>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">通常攻撃</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">優勢攻撃</a>
+
+        <hr>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10194" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">聖煌剣</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10333" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">悪路抜刀</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10330" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">青龍偃月刀</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10208" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">バルムンク</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10162" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">神剣バルムンク</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10335" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">アビスエッジ</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12157" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">流星天撃</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10149" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">セイクリッドエッジ</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11071" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">天子の兆し</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11014" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">月下美人</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10742" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">シープウェイブ</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11010" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">光乙女</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11015" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">紅乙女</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11007" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">フリズムキャルヴ</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10624" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ホーリーウィンド</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11023" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">三顧の礼</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11028" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">戦王子</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10847" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">フォーチュンマジック</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10836" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ホーリーパーム</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10826" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">エンペラーストリーム</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10341" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">凍魔剣アメイモン</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11074" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">女殺しの輝き</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11047" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">光輝天使の導き</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10731" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ヴィルフロスト</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12149" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">魏武帝の覇剣</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10714" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">水月鏡花</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10840" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ケミカルフュージョン</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10612" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ジャッジメント</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10827" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ホーリーバースト</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11046" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">妃神の息吹</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11011" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">女神の息吹</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10117" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">灼熱天掌</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11072" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">花見酒</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10152" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">焔双剣</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12142" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">真・焔双剣</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11006" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">雪月花</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10744" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">アクアメロウ</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10716" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ラビットノヴァ</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10705" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ニブルヘイム</a>
+
+        <hr>
+
+<!--
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10253" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">イグニートランス</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11003" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">聖乙女</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11020" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">仙娘の贈り物</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10271" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">マイティソード</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10267" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">聖剣ティソーナ</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10259" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">クイーンズブレイド</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10619" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">スウィートウィンド</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10825" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ハーヴェスト</a>
+        <hr>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10230" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">死蝶閃</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10297" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">シェムハザード</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12119" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">悟空無双</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10620" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">アースシェイカー</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12101" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ブリッツクリーク</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12109" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">テラボルテックス</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10227" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ミョルニル</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10338" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">霧雨乱舞</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10264" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">戦姫無双</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12105" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">雷帝の戦斧</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10144" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">鬼神無双</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=12155" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">鬼神一騎打ち</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10275" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">神殺しの暴牙</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10609" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">サンダースパーク</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10282" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ライトニングピアーズ</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=10604" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ケラウノス</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11108" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">オリオンガード</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=11118" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">真・オリオンガード</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">変更中</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">変更中</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">変更中</a>
+
+-->
+
+        </div>
+
+        <div>
+        <h1>後衛</h1>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=60" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">エール</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=61" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">下げエール</a>
+       <hr>
+
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21501" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">妃神の輝き</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20118" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ガラシャスペシャル</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20955" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">姫将鼓舞</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21640" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">愛姫鼓舞</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21040" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">雪鬼眼</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21467" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">真・雪鬼眼</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21312" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ホーリーサークル</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21606" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ルーネサークル</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21612" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">白煌天使の威光</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20901" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">神威降臨</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21705" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">鳳凰の威光</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21042" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">幻惑眼</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21474" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">真・幻惑眼</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20963" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">羊娘号令</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21654" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">天泉</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20944" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">レゾナンス</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21501" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">妃神の輝き</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20968" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">聖女神の祝福</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21733" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">聖女神の唄</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20825" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">桃園の誓い</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21679" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">玄徳の陣</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20991" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">王子号令</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20992" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ヤシャスィーン</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21716" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">占妖精の祝福</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21622" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">光巫女の祝福</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20869" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">光巫女の唄</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21506" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">帝龍闘気</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21059" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">水磁の眼光</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21486" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">真・水磁の眼光</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21732" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">最高神の威光</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21638" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">光輝天使の祝福</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20848" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">水磁の祝福</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21735" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">水磁の祝福・改</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21648" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">乱世の奸雄</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20821" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">鼓舞</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20856" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">月英の鼓舞</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21676" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">エリクサー</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20933" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">神の威光</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20853" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">智天使の威光</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20966" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">聖光号令</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20604" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">絶命の光矢</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20606" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">絶命の光雨</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21707" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">迎春の宴</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20951" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">海神号令</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21304" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">百花繚乱</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20974" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">エルフの秘薬</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21734" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">人魚の傷薬</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20814" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">デルピノス</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21647" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">超ヒャッハー!!</a>
+
+
+<!--
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20212" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">如意棒</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20110" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">一騎駆け</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20106" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">乱入電光撃</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20108" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">乱入獄炎撃</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20902" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">英傑号令</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21601" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">天空神号令</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20954" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">雷帝号令</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20962" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">肉まんエール</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20119" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">女神の唄</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21009" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">怒号</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20959" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">星神号令</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21047" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">兵主神の威圧</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21044" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">闇堕ち</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21057" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">電磁の威圧</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21046" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ジャックインパルス</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21012" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">帰蝶の舞</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21415" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">猛将の威圧</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=21416" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">終焉の咆哮</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20935" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">進軍号令</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20970" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">ホーリーベル</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=20921" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">軍神号令</a>
+        <a href="http://gree.sp.valhalla-gate.jp/Battle/AbilityExecute?abilityId=" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">変更中</a>
+        </div>
+-->
+
+
+<!--
+        <div>
         <h1>クエスト</h1>
         <a href="http://valhalla-gate.gree-pf.net/Duty/ExecuteDuty/?sid=23" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">魔導都市の黒き翼</a>
         <a href="http://valhalla-gate.gree-pf.net/Duty/ExecuteDuty/?sid=22" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">侵略の始まり</a>
@@ -122,6 +216,8 @@
         <a href="http://valhalla-gate.gree-pf.net/Duty/ExecuteDuty/?sid=18" class="ui-btn ui-btn-inline" data-transition="flip" rel="external noreferrer" target="_brank">黒き力の覚醒</a>
         </div>
   </div>
+
+-->
 
     </div><!-- /content -->
 

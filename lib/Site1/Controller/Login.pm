@@ -195,7 +195,7 @@ sub usercheck {
                 )->res->json if (defined $atoken);
 
     my $text = to_json($value);
-       $self->app->log->info("DEBUG: value: $text");
+     #  $self->app->log->info("DEBUG: value: $text");
 
     #結果がエラーならrefresh tokenでaccess tokenを取得
     if (! defined $value->{displayName}) {
@@ -207,7 +207,7 @@ sub usercheck {
                                   grant_type => "refresh_token",
                                            })->res->json;
                my $new_token = to_json($data);
-               $self->app->log->info("DEBUG: newtoken: $new_token");
+            #   $self->app->log->info("DEBUG: newtoken: $new_token");
 
        if ( $data->{token_type} eq "Bearer" ) {
        #id_tokenでリトライ
@@ -216,7 +216,7 @@ sub usercheck {
                 )->res->json if (defined $atoken);
 
        $text = to_json($value);
-       $self->app->log->info("DEBUG: value 2: $text");
+     #  $self->app->log->info("DEBUG: value 2: $text");
            } # if token_type
 
             # リフレッシュトークンの取得失敗
@@ -242,10 +242,10 @@ sub usercheck {
      $value = $ua->get(
                 "https://www.googleapis.com/plus/v1/people/me?access_token=$atoken"
                 )->res->json if ( defined $atoken );
-       #self->app->log->info("DEBUG: new atoken: $atoken");
+    #   #self->app->log->info("DEBUG: new atoken: $atoken");
 
        $text = to_json($value);
-       $self->app->log->info("DEBUG: new value: $text"); 
+    #   $self->app->log->info("DEBUG: new value: $text"); 
 
         } # defined displayName
 
@@ -259,11 +259,11 @@ sub usercheck {
     my $gpid = $value->{id};
 
        $uid = Sessionid->new($gpid)->guid unless $uid; #無ければ
-       $self->app->log->info("DEBUG: guid: $uid");
+#       $self->app->log->info("DEBUG: guid: $uid");
 
     # email,usernameが取得できない場合 ->リダイレクト
     if ( ! defined $email and ! defined $username ) {
-        $self->app->log->info('Notice: email or username not get Error!');
+#        $self->app->log->info('Notice: email or username not get Error!');
         $self->redirect_to('/');
         return;
        }
@@ -497,9 +497,9 @@ sub oauth2callback {
 
                 return $self->redirect_to("/") unless $data;
 
-                $self->app->log->info("DEBUG: get_token err: $err ");
+#                $self->app->log->info("DEBUG: get_token err: $err ");
                 my $datajson = to_json($data);
-                $self->app->log->info("DEBUG: data: $datajson");
+#                $self->app->log->info("DEBUG: data: $datajson");
 
             my $ua = Mojo::UserAgent->new;
             my $value = $ua->get(

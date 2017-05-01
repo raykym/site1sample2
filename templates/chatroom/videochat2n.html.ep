@@ -595,11 +595,58 @@ function hangUp(){
 
 }
 
+function pushcall(){
+// site1にemailとroomanameを送って、webpushを行う mode
+  $('#errormess').empty;
+
+  var pushemail = $('#pushemail').val();
+  var roomname = $('#roomname').val();
+  var username = "<%= $username %>";
+
+  if (( pushemail == "") || (roomname == "") || (username == "")){
+       $('#errormess').text("ERROR");
+       return;
+     }
+
+ var params = {
+                "to" : pushemail,
+                "from" : username,
+                "roomname" : roomname,
+                "page" : "videochat",
+              };
+
+ var data = JSON.stringify(params);
+
+ function postpush(){
+     return $.ajax({
+            type: "POST",
+                    url: "https://westwind.iobb.net/sendwebpush",
+                    dataType: "json",
+                    cache: false,
+                    data: data,
+                    success: responseget,
+           });
+          }
+
+  postpush();
+
+    function responseget(data){
+       $('#errormess').text(data.mess);
+    }
+}
 
 </script>
 
 <div data-role="page" style="background: #80aa55">
-    <div><h3>Video Chat Remake</h3></div>
+    <div data-role="header">
+        <a href="#panel" data-icon="bars" data-iconpos="notext">panel</a>
+        <h3>Video Chat</h3>
+    </div>
+         <div data-role="panel" id="panel" data-display="overlay">
+            <div id="errormess"></div>
+            <p><input type="text" id="pushemail" placeholder="email"></p>
+            <button type="button" onclick="pushcall();">呼び出しpush通知</button>
+         </div>
     <div style="color: #ff0000"><%= $msg_w %></div>
             <p>
                <div data-role="collapsibleset">
@@ -628,6 +675,8 @@ function hangUp(){
              <li>音声は暗号化の影響でタイムラグが有ります。</li>
              <li>インジケーターは接続を確認できますが、切断されても認識出来ないので、あくまで目安程度です。</li>
              <li>端末の状態で接続出来ないケースがあります。Google play等でupdateが走ると処理が重くてつながらないケースがあります。</li1>
+             <li>Webpushで通知が送れます。room名を入力してチャット待機状態にしてから、左上のバーボタンを開いて、相手のemailを指定して通知が出来ます。
+</li>
            </ul>
         </div>
     <div data-role="footer" style="backgroud: #aac78d;">

@@ -1,0 +1,7 @@
+{
+  "name": "westwind.iobb.net message!",
+  "short_name": "WebPush",
+  "start_url": "https://westwind.iobb.net/",
+  "display": "standalone",
+  "gcm_sender_id": "861600582037"
+}

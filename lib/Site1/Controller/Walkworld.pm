@@ -88,7 +88,7 @@ my $debugCount = 3;
 sub echo {
     my $self = shift;
 
-#       $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
+       $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
     my $id = sprintf "%s", $self->tx->connection;
        $clients->{$id} = $self->tx;
 
@@ -132,7 +132,7 @@ sub echo {
               my $delay = shift;
                  # とりあえず、GPSが20秒で来るはずなのでdelayを行う(chromebookでは失敗するケースがある、、、)  
                  Mojo::IOLoop->timer( 20 => $delay->begin );
-#                 $self->app->log->debug("DEBUG: $username delay ON");
+                 $self->app->log->debug("DEBUG: $username delay ON");
               },
           sub {
               my ($delay, @args) = @_;
@@ -158,7 +158,7 @@ sub echo {
 
            undef $walkchat_cursole;
 
-#           $self->app->log->debug("DEBUG: $username delay BLOCK END!");
+           $self->app->log->debug("DEBUG: $username delay BLOCK END!");
            $delay_once->{$id} = 'false';
            } # delay block
 
@@ -171,7 +171,7 @@ sub echo {
   $self->on(message => sub {
         my ($self,$msg) = @_;
 
-#           $self->app->log->debug("DEBUG: $username ws msg: $msg");
+#           $self->app->log->info("DEBUG: $username ws msg: $msg");
 
            my $jsonobj = from_json($msg);
 
@@ -185,7 +185,7 @@ sub echo {
 
                my  $chatevt = clone($jsonobj);
 
-#               $self->app->log->debug("INFO: $username chat msg: $msg");
+               $self->app->log->debug("INFO: $username chat msg: $msg");
 
            #NGワードチェック
            my $chkword = encode_utf8($chatevt->{chat});  #上でmsgをエンコードしたから不要になるのでは？
@@ -194,7 +194,7 @@ sub echo {
               $chkmsg->ngword;
            my $res_chkmsg = $chkmsg->result;
            my $chkmsg_string = decode_utf8($chkmsg->{string});
-#              $self->app->log->debug("DEBUG: res_chkmsg: $res_chkmsg | $chkmsg_string ");
+              $self->app->log->debug("DEBUG: res_chkmsg: $res_chkmsg | $chkmsg_string ");
            undef $chkmsg;
 
            my $chatobj;
@@ -248,14 +248,13 @@ sub echo {
 
                    # walkchatへの書き込み
                    $walkchatcoll->insert($chatobj);
-#                   $self->app->log->debug("DEBUG: $username insert chat");
+                   $self->app->log->debug("DEBUG: $username insert chat");
 
                    my $chatjson = to_json($chatobj);
                       
                    # 書き込み通知
                    $redis->publish( $chatname , $chatjson );
-                   $redis->expire( $chatname => 3600 );
-#                   $self->app->log->debug("DEBUG: $username publish WALKCHAT");
+                   $self->app->log->debug("DEBUG: $username publish WALKCHAT");
 
            return;
            } #chat
@@ -266,18 +265,18 @@ sub echo {
            if ( defined $jsonobj->{hitname} ){
         
                $timelinelog->insert($jsonobj);
-#               $self->app->log->debug("DEBUG: $username hitname write");
+               $self->app->log->info("DEBUG: $username hitname write");
 
                #WalkWorld.MemberTimeLineに残るデータを削除する。
                $timelinecoll->delete_many({"userid" => "$jsonobj->{to}"}); # mognodb3.2
-#               $self->app->log->debug("DEBUG: $username hit delete many execute.");
+               $self->app->log->info("DEBUG: $username hit delete many execute.");
 
                # 履歴を読んでカウントアップする 
                my $memcountobj = $membercount->find_one_and_delete({'userid'=>"$jsonobj->{execute}"});
                my $pcnt = 0;
-                  $pcnt = $memcountobj->{count} if ($memcountobj ne 'null');
+                  $pcnt = $memcountobj->{count} if ( defined $memcountobj->{count});
                   $pcnt = ++$pcnt;
-#                  $self->app->log->debug("DEBUG: pcnt: $pcnt");
+                  $self->app->log->debug("DEBUG: pcnt: $pcnt");
                   $memcountobj->{count} = $pcnt;
                   $memcountobj->{userid} = $jsonobj->{execute};
                   delete $memcountobj->{_id};
@@ -309,7 +308,7 @@ sub echo {
 
       # 攻撃シグナルの送信 toにuserid
            if ( $jsonobj->{to} ) {
-#              $self->app->log->debug("DEBUG: $username Attack send: $msg");
+              $self->app->log->info("DEBUG: $username Attack send: $msg");
 
                       # TTLレコードを追加する。
                   #    $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
@@ -317,10 +316,10 @@ sub echo {
                    #   $timelinecoll->insert($jsonobj);
                    #   $timelinelog->insert($jsonobj); # hitnameパラメータを記録するのでtoはLOGから除外する。
                       my $jsontext = to_json($jsonobj);
-                      $self->redis->publish("$attackCH", $jsontext);
+                      $redis->publish("$attackCH", $jsontext);
                       undef $jsontext;
 
-#                      $self->app->log->debug("DEBUG: $username execute Command write....");
+                      $self->app->log->info("DEBUG: $username execute Command write....");
 
                       undef $jsonobj;
                       return;
@@ -358,9 +357,10 @@ sub echo {
        # 以下、map系のメッセージ処理
            # TTLレコードを追加する。
          #  $jsonobj = { %$jsonobj,ttl => DateTime->now() };  
+           # 1週間の期限はDB固有になるのでイベントの種類を作るとcollectionを増やすべきか？
            $jsonobj->{ttl} = DateTime->now();  
 
-#           $self->app->log->debug("DEBUG: $username msg: $msg");
+           $self->app->log->debug("DEBUG: $username msg: $msg");
 
            # 負荷軽減になるのか？　MemberTimeLineを1個に限定出来るのか？　書き込み前に削除を加えてみる
            $timelinecoll->delete_many({"userid" => "$jsonobj->{userid}"}); # mognodb3.2
@@ -373,13 +373,11 @@ sub echo {
            # 攻撃を受けたか確認する　基本NPC用
            my $attack_chk = $timelinecoll->find_one({ "to" => $userid });
            my $jsonattackchk = to_json($attack_chk);
-#              $self->app->log->debug("DEBUG: $username $jsonattackchk") if ($attack_chk); 
+              $self->app->log->debug("DEBUG: $username $jsonattackchk") if ($attack_chk); 
               if ($attack_chk) {
                                 $clients->{$id}->send({ json => $attack_chk });
                                 return;  # この処理が入るとボットはダウンするので終了する。
                                }
-
-#           my $asyncv = AE::cv;
 
            # 現状の情報を送信 
            # mongo3.2用 3000m以内のデータを返す
@@ -400,9 +398,6 @@ sub echo {
 
             #データから最新ポイントだけを抽出するには、降順で時刻をsortして、
             my @all_points = $geo_points_cursole->all;
-
-#            $asyncv->send(@all_points);
-#            $asyncv->recv;
             
          #   my $datadebug = Dumper(@all_points);
          #   $self->app->log->debug("DEBUG: all_points: $datadebug");
@@ -444,7 +439,7 @@ sub echo {
                    my $listhash = { 'pointlist' => \@pointlist };
                    my $jsontext = to_json($listhash); 
                       $clients->{$id}->send($jsontext);
-#                      $self->app->log->debug("DEBUG: $username geo_points: $jsontext");
+                      $self->app->log->debug("DEBUG: $username geo_points: $jsontext");
           # map系終了
 
           # trapeventのヒット判定
@@ -459,26 +454,27 @@ sub echo {
 
                my @trapevents = $trapmember_cursole->all;
 
-          #     my $debug = to_json(@trapevents);
-          #     $self->app->log->debug("DEBUG: trapevents: $debug");
-          #     undef $debug;
+           #    my $debug = to_json(@trapevents);
+           #    $self->app->log->info("DEBUG: trapevents: $debug");
+           #    undef $debug;
 
                 # eventの分離
                 my @mine = ();
                 my @viewev = ();
                 foreach my $te (@trapevents){
                     push (@mine, $te) if ( $te->{name} eq 'mine');
-                    push (@viewev, $te) if ( $te->{name} eq 'view');  # 未定義
+                    push (@viewev, $te) if ( $te->{name} eq 'message');  
                 }
 
+               # trapevent
                if ( $#mine != -1 ){
-#                   $self->app->log->debug("DEBUG: TRAP on Event!!!!!!!");
+                   $self->app->log->debug("DEBUG: TRAP on Event!!!!!!!");
 
                    my $memcountobj = $membercount->find_one_and_delete({'userid'=>$userid});
                    my $pcnt = 0;
                       $pcnt = $memcountobj->{count} if ($memcountobj ne 'null');
                       $pcnt = --$pcnt;
-#                      $self->app->log->debug("DEBUG: trap: on $username pcnt: $pcnt");
+                      $self->app->log->debug("DEBUG: trap: on $username pcnt: $pcnt");
                       $memcountobj->{count} = $pcnt;
                       $memcountobj->{userid} = $userid;
                       delete $memcountobj->{_id};
@@ -497,20 +493,20 @@ sub echo {
                                        icon_url => $icon_url,
                                        username => $username,
                                             hms => $dt->hms,
-                                           chat => "$trapevents[0]->{message}",
+                                           chat => "$mine[0]->{message}",
                                             ttl => $ttl,
                                      };
 
                         # walkchatへの書き込み
                         $walkchatcoll->insert($chatobj);
-#                        $self->app->log->debug("DEBUG: $username insert chat");
+                        $self->app->log->debug("DEBUG: $username insert chat");
 
                         my $chatjson = to_json($chatobj);
 
                         # 書き込み通知
                         $redis->publish( $chatname , $chatjson );
                      #   $redis->expire( $chatname => 3600 );
-#                        $self->app->log->debug("DEBUG: $username publish WALKCHAT");
+                        $self->app->log->debug("DEBUG: $username publish WALKCHAT");
 
                    for my $i (@mine){
                 #       my $debug = to_json($i);
@@ -519,6 +515,19 @@ sub echo {
                        $trapmemberlist->delete_one({ '_id' => $i->{_id}});
                    }
                } # if mine
+
+               # message event trap
+               if ($#viewev != -1){
+
+                   my $trapevobj = { 'trapmessage' => \@viewev };
+                   my $trapevjson = to_json($trapevobj);
+
+                   $clients->{$id}->send($trapevjson);
+
+                   undef $trapevobj;
+                   undef $trapevjson;
+
+               } # if viewev
 
                    undef @pointlist;
                    undef @makerlist;
@@ -533,7 +542,7 @@ sub echo {
   $self->on(finish => sub {
         my ($self,$msg) = @_;
 
-#        $self->app->log->debug("DEBUG: $username On finish!!");
+        $self->app->log->debug("DEBUG: $username On finish!!");
         delete $clients->{$id};
         delete $stream_io->{$id};
         delete $delay_once->{$id};
@@ -556,14 +565,19 @@ sub NESW { deg2rad($_[0]), deg2rad( 90 - $_[1]) }
 #redis receve
      $redis->on(message => sub {
                   my ($redis,$mess,$channel) = @_;
-#                      $self->app->log->debug("DEBUG: on channel:($username) $mess");
+                      $self->app->log->info("DEBUG: on channel:($channel) $username : $mess");
 
-                      if ( $channel ne $chatname ) { return; } # filter channel
+                      if ( ! $channel eq $chatname ) { 
+                                                     return; 
+                         } elsif ( ! $channel eq $attackCH ) {   
+                                                     return;
+                         } # filter channel
 
                       my $messobj = from_json($mess);
 
                       #攻撃シグナルは優先で送信する。
                       if ( defined $messobj->{to} ) {
+                         $self->app->log->info("DEBUG: recive hitparam and send...");
                          $clients->{$id}->send($mess);
                          return;
                       }
@@ -579,7 +593,7 @@ sub NESW { deg2rad($_[0]), deg2rad( 90 - $_[1]) }
                       if ( $t_dist < 3000 ){
                         if ( defined $clients->{$id} ){ 
                            $clients->{$id}->send($mess);
-#                           $self->app->log->debug("DEBUG: send websocket:($username) $mess");
+                           $self->app->log->debug("DEBUG: send websocket:($username) $mess");
                             }
                           }
 
@@ -590,26 +604,20 @@ sub NESW { deg2rad($_[0]), deg2rad( 90 - $_[1]) }
      $redis->subscribe(\@chatArray, sub {
                    my ($redis, $err) = @_;
                  #     return $redis->publish( $chatname => $err) if $err;
-#                      $self->app->log->debug("DEBUG: $username redis subscribe");
+                      $self->app->log->debug("DEBUG: $username redis subscribe");
                       return $redis->incr(@chatArray);
                    });
    #  $redis->expire( \@chatArray => 3600 );
 
      $redis->on(error => sub {
                    my ($redis,$err) = @_;
-#                      $self->app->log->debug("DEBUG: $username redis error: $err");
+                      $self->app->log->debug("DEBUG: $username redis error: $err");
                    });
 
       # 複数クライアントに対応している為 websocket毎に stream_ioはあまり意味がないのか？送信するわけでも無いから
          $stream_io->{$id} = Mojo::IOLoop->stream($id);
-         $stream_io->{$id}->timeout(30);  # 30sec
+         $stream_io->{$id}->timeout(30);  # nontimeout
          $self->inactivity_timeout(12000); # 12sec 
-
- # for NYTProf
-#      $debugCount--;
-#      if ($debugCount == 0 ) {
-#         exit;
-#      }
 
 } # echo
 

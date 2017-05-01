@@ -167,6 +167,11 @@ sub startup {
 #  $bridge->get('/menu/rec-timeline')->to('timeline#view');
 #  $bridge->get('/menu/maptimeline')->to('timeline#mapview');
 
+  $bridge->any('/notifications')->to('top#notifications');
+  $bridge->post('/receive')->to(controller => 'Top', action => 'receive');
+  $bridge->get('/delwebpush')->to(controller => 'Top', action => 'delwebpush');
+  $bridge->post('/sendwebpush')->to(controller => 'Top', action => 'sendwebpush');
+
   $bridge->get('/test/webpubsub')->to('chatroom#webpubsub');
 
   $bridge->get('/walkworld/view')->to('walkworld#view');

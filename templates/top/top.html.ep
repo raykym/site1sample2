@@ -11,19 +11,21 @@
                 <a href="https://goo.gl/zDCRrG" data-rel="dialog" data-transition="flip" class="ui-btn ui-corner-all">Google+</a>
             </div>
             <div>
-         %#   <h4 style="color: #005500;">登録済みの場合、直接メニューから入れます</h4>
-            <h4 style="color: #005500;">Google+のアカウントが有れば登録は不要です。アカウントはセッション識別の為に利用します。</h4>
+%#            <h4 style="color: #005500;">登録済みの場合、直接メニューから入れます</h4>
+%#            <h4 style="color: #005500;">Google+のアカウントが有れば登録は不要です。アカウントはセッション識別の為に利用します。</h4>
             </div>
         </div>
     </div><!-- /header -->
-    <div role="main" class="ui-content" id='border'>
+    <div data-role="main" class="ui-content" id='border'>
         <h2><%= $msg %></h2>
-%#        <p style="color: #ff0000">知り合い向けのWebRTCシグナリングサーバです。関係者以外立ち入り禁止</p>
+        <p style="color: #ff0000">Google ChromeでWebRTC、GoogleMapを試しているサイトです</p>
+%#        <p style="color: #000000">散歩ワールドはghostを追いかけるオリエンテーリングです。trapで攻撃やメッセージを設置出来ます。</p>
+%#        <p style="color: #000000">音声、動画チャットは最大25人まで同時接続を許可します。画面に収まり切るか分かりませんが（笑）</p>
 %#        <a href="/menu" style="text-decoration: none; background: #222222; color: #ffffff;" class="ui-btn ui-corner-all ui-btn-inline" data-transition="flip">メニュー</a>
         <a href="/walkworld/view" class="ui-btn" data-transition="flip" rel="external">散歩World</a>
-        <a href="/testhtml/rewrite_walkgame.html" class="ui-btn" data-transition="flip" rel="external">散歩ゲーム(プロトタイプチュートリアル)</a>
+%#        <a href="/testhtml/rewrite_walkgame.html" class="ui-btn" data-transition="flip" rel="external">散歩ゲーム(プロトタイプチュートリアル)</a>
         <a href="/menu" class="ui-btn" data-transition="flip" rel="external">メニュー</a>
-        <object type="text/html" data="https://westwind.iobb.net/walkworld/overviewWW" style="width : 100%; height : 400px;" alt="objectに対応していない場合はこれが表示される">
+        <object type="text/html" data="https://westwind.iobb.net/walkworld/overviewWW" style="width : 100%; height : 400px;" alt="objectに対応していない場合はこれが表示される"></object>
     </div><!-- /content -->
     <div data-role="footer" style="background: #aac78d;" data-theme="b">
         <div>
@@ -31,6 +33,6 @@
         <h5 style="color: #550000;">このサイトの参照はGoogle Chromeでお願いします。</h5>
         <h5 style="color: #550000;">Android 4.2以上が必須です</h5>
         <h5 style="color: #550000;">iOSではChromeでも動かないです。</h5>
-        <div>
+        </div>
     </div><!-- /footer -->
 </div><!-- /page -->

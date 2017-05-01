@@ -568,10 +568,58 @@ function getRoomName() { // たとえば、 URLに  ?roomname=open  とする
     return ; 
   }
 
+function pushcall(){
+// site1にemailとroomanameを送って、webpushを行う mode
+  $('#errormess').empty;
+
+  var pushemail = $('#pushemail').val();
+  var roomname = $('#roomname').val();
+  var username = "<%= $username %>";
+
+  if (( pushemail == "") || (roomname == "") || (username == "")){
+       $('#errormess').text("ERROR");
+       return;
+     }
+
+ var params = {
+                "to" : pushemail,
+                "from" : username,
+                "roomname" : roomname,
+                "page" : "voicechat",
+              };
+
+ var data = JSON.stringify(params);
+
+ function postpush(){
+     return $.ajax({
+            type: "POST",
+                    url: "https://westwind.iobb.net/sendwebpush",
+                    dataType: "json",
+                    cache: false,
+                    data: data,
+                    success: responseget,
+           });
+          }
+
+  postpush();
+
+    function responseget(data){
+       $('#errormess').text(data.mess);
+    }
+}
+
 </script>
 
 <div data-role="page" style="background: #80aa55">
-    <div><h3>Voice Chat Remake</h3></div>
+    <div data-role="header">
+        <a href="#panel" data-icon="bars" data-iconpos="notext">panel</a>
+        <h3>Voice Chat </h3>
+    </div>
+         <div data-role="panel" id="panel" data-display="overlay">
+            <div id="errormess"></div>
+            <p><input type="text" id="pushemail" placeholder="email"></p>
+            <button type="button" onclick="pushcall();">呼び出しpush通知</button>
+         </div>
     <div style="color: #ff0000"><%= $msg_w %></div>
         <div style="border: 1px solid">
             <p>
@@ -595,11 +643,12 @@ function getRoomName() { // たとえば、 URLに  ?roomname=open  とする
             <button type="button" class="ui-btn ui-btn-inline" style="color: #ff0000" onclick="hangUp();">Hang Up</button>
         </div>
         <div>
-           <a href="mailto:?subject=チャットへの招待&body=https://westwind.iobb.net/voicechat2n へアクセスして、room名”　　　”に入って下さい。（アカウント登録が必要になります。もしくはgoogle+アカウントが利用出来ます。）" class="ui-btn">チャットへの招待メール起動</a>
            <ul>
-             <li>音声は暗号化の影響でタイムラグが有ります。</li>
+             <li>音声はタイムラグが有ります。</li>
              <li>インジケーターは接続を確認できますが、切断されても認識出来ないので、あくまで目安程度です。</li>
-             <li>端末の状態で接続出来ないケースがあります。Google play等でupdateが走ると処理が重くてつながらないケースがあります。</li>
+             <li>イコライザーアプリを追加して、音声用に低音、高音を落とした方が聞き取りやすいかもしれません</li>
+              <li>Webpushで通知が送れます。room名を入力してチャット待機状態にしてから、左上のバーボタンを開いて、相手のemailを指定して通知が出来ます。
+</li>
            </ul>
         </div>
 

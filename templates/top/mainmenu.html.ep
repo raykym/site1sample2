@@ -1,5 +1,144 @@
 % layout 'mobidef2';
 % title 'mainmenu';
+
+%# webpushをtopページに追加、ドメイン単位になるので、topに設定するのがセオリー？
+<script src="https://www.gstatic.com/firebasejs/3.8.0/firebase.js"></script>
+<script>
+  // Initialize Firebase
+  var config = {
+    apiKey: "AIzaSyCCRkQOD14bt5HJMZ4XkMMyf0hKcc0QzEI",
+    authDomain: "velvety-decoder-677.firebaseapp.com",
+    databaseURL: "https://velvety-decoder-677.firebaseio.com",
+    projectId: "velvety-decoder-677",
+    storageBucket: "velvety-decoder-677.appspot.com",
+    messagingSenderId: "861600582037"
+  };
+  firebase.initializeApp(config);
+</script>
+<script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-app.js"></script>
+%#<script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-auth.js"></script>
+%#<script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-database.js"></script>
+%#<script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-messaging.js"></script>
+
+<script>
+function initialiseState() {
+    if (!("showNotification" in ServiceWorkerRegistration.prototype)) {
+        console.warn("プッシュ通知が対応されておりません");
+        return;
+    }
+
+    if (Notification.permission === "denied") {
+        console.warn("通知をブロックしております");
+        return;
+    }
+
+    if (!("PushManager" in window)) {
+        console.warn("プッシュ通知が対応されておりません");
+        return;
+    }
+}
+
+// serviceworker 登録
+$(function(){
+    if ("serviceWorker" in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.register("/sw.js").then(
+            function (registration) {
+                if (typeof registration.update == "function") {
+                    registration.update();
+                }
+
+                initialiseState();
+            }).catch(function (error) {
+                console.error("Service Worker registration failed: ", error);
+            });
+    }
+
+        Notification.requestPermission(function(permission) {
+            if(permission !== "denied") {
+                subscribe();
+                $("#push_delete").show();
+            } else {
+                alert ("プッシュ通知を有効にできません。ブラウザの設定を確認して下さい。");
+            }
+        });
+
+});
+
+function subscribe() {
+        navigator.serviceWorker.ready.then(function(serviceWorkerRegistration) {
+            serviceWorkerRegistration.pushManager.subscribe({ userVisibleOnly: true }).then(
+                function(subscription) {
+                    $("#push_regist").hide();
+
+               //     console.log("DEBUG: subscription: " + JSON.stringify(subscription) );
+                    return sendSubscriptionToServer(subscription);
+                }
+            ).catch(function (e) {
+                if (Notification.permission == "denied") {
+                    console.warn("Permission for Notifications was denied");
+                } else {
+                    console.error("Unable to subscribe to push.", e);
+                    window.alert(e);
+                }
+            })
+        });
+}
+
+function unsubscribled() {
+        navigator.serviceWorker.ready.then(function(serviceWorkerRegistration) {
+            serviceWorkerRegistration.pushManager.getSubscription().then(
+                function(subscription) {
+                    if (!subscription ) {
+                        $("#push_regist").show();
+                        $("#push_delete").hide();
+                        return;
+                    }
+
+                    sendSubscriptionToServerForDelete(subscription);
+
+                    subscription.unsubscribe().then(function(successful) {
+                        $("#push_regist").show();
+                        $("#push_delete").hide();
+                    }).catch(function(e) {
+                        console.error("Unsubscription error: ", e);
+                        $("#push_regist").show();
+                        $("#push_delete").hide();
+                    });
+                }
+            ).catch(
+                function(e) {
+                    console.error("Error thrown while unsubscribing from push messaging.", e);
+                }
+            )
+        });
+}
+
+function sendSubscriptionToServer(subscription) {
+        //発行したサブスクリプションをサーバー側に送信します。
+        //ここではサブスクリプションを/receiveに送信しています。
+        console.log('sending to server for regist:',subscription);
+        var data = JSON.stringify(subscription);
+        $.ajax({
+            type: "POST",
+            url: "https://westwind.iobb.net/receive",
+            dataType: "json",
+            cache: false,
+            data: data
+        });
+}
+
+function sendSubscriptionToServerForDelete(subscrption) {
+        //TODO サブスクリプションをサーバーから削除する処理。
+        console.log('sending to server for delete:', subscrption);
+        //認証結果で削除するので何も送らない
+        $.ajax({
+          type: "GET",
+          url: "https://westwind.iobb.net/delwebpush",
+          cache: false
+          });
+}
+</script>
+
 <div data-role="page" id="menu-top" style="background: #80aa55;">
     <div>
         <h1>ThisSite</h1>
@@ -8,6 +147,8 @@
         <h3>ようこそ、<%= $username %>さん</h3>
         <p>このサイトは、サイト構築の習作として構築しています。文言やイメージなど統一性もありませんが、機能を追加しながら実験する為のサイトです。</p>
         <h2><%= $msg %></h2>
+    <a href="#" id="push_regist"  onclick="subscribe()" class="ui-btn" rel="external" style="display:none">通知登録して！！！！</a>
+    <a href="#" id="push_delete"  onclick="unsubscribled()" class="ui-btn" rel="external" style="display:none">通知登録消して！！！！</a>
         <a href="/walkworld/view" class="ui-btn" data-transition="flip" rel="external">散歩World</a>
 %#        <a href="/testhtml/rewrite_walkgame.html" class="ui-btn" data-transition="flip" rel="external">散歩ゲーム</a>
         <a href="/menu/chatopen" class="ui-btn" data-transition="flip" rel="external">オープンチャット</a>
