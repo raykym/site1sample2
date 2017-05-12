@@ -367,6 +367,7 @@ sub webpubsub {
                    # redisのエントリーを削除
                    $redis->unsubscribe(\@recvArray);
                    $redis->del("ENTRY$recvlist$wsid");
+                   $redis->del("$wsid");
 
                    delete $stream_io->{$wsid};
 

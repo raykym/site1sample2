@@ -45,7 +45,7 @@ sub notifications {
 
     my $icon = $self->stash('icon');
     my $icon_url = $self->stash('icon_url');
-       $icon_url = "https://www.backbone.site/imgcomm?oid=$icon" if (! defined $icon_url);
+       $icon_url = "https://westwind.iobb.net/imgcomm?oid=$icon" if (! defined $icon_url);
 
     my $redis ||= Mojo::Redis2->new;
     my $getmess = $redis->get("$endpoint");
@@ -53,9 +53,10 @@ sub notifications {
 
     my $push_json = { "title" => "通知が届きました！",
                       "icon" => "$icon_url",
-                      "body" => "$messobj->{from}さんから,$messobj->{page}の申請です。roomは$messobj->{roomname}です。",
-                      "url" => "https://www.backbone.site"
+                      "body" => "$messobj->{body}",
+                      "url" => "$messobj->{url}"
                     };
+           #####           "body" => "$messobj->{from}さんから,$messobj->{page}の申請です。roomは$messobj->{roomname}です。",
     $self->res->headers->header("Access-Control-Allow-Origin" => 'https://westwind.iobb.net/' );
     $self->render( json => $push_json );
 

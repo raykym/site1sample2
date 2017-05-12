@@ -21,6 +21,9 @@
        ws.send(JSON.stringify(dummsg)); 
        console.log("socket wait sending!");
         }, 50000);
+
+       autoentry();
+
     };
 
     ws.onclose = function(){
@@ -196,7 +199,8 @@
 function startvoice() {
     console.log('Start local Media');
 
-    navigator.webkitGetUserMedia({video: false, audio: true},
+  %#  navigator.webkitGetUserMedia({video: false, audio: true},
+    navigator.webkitGetUserMedia({video: false, audio: {mandatory: {echoCancellation : false, googEchoCancellation: false}} },
     function (stream) { // success
       localStream = stream;
     },
@@ -552,7 +556,8 @@ function member(){
 
 function hangUp(){
 
-    window.location.reload();
+ %#   window.location.reload();
+    window.location.replace('https://westwind.iobb.net/voicechat2n');
 
 }
 
@@ -562,7 +567,8 @@ function getRoomName() { // たとえば、 URLに  ?roomname=open  とする
     if (args.length > 1) {
       var room = args[1];
       if (room != "") {
-        return room;
+        var encroom = decodeURI(room);
+        return encroom;
       }
     }
     return ; 
@@ -581,11 +587,18 @@ function pushcall(){
        return;
      }
 
+  var pushurl = "https://westwind.iobb.net/voicechat2n?" + roomname;
+  var encurl = encodeURI(pushurl);
+
+  var bodymess = username + "さんから,voicechatの申請です。roomは" + roomname + "です。";
+
  var params = {
                 "to" : pushemail,
                 "from" : username,
                 "roomname" : roomname,
                 "page" : "voicechat",
+                "body" : bodymess,
+                "url" : encurl,
               };
 
  var data = JSON.stringify(params);
@@ -607,6 +620,19 @@ function pushcall(){
        $('#errormess').text(data.mess);
     }
 }
+
+function autoentry(){
+    //通知の場合の自動エントリー
+    var rname = getRoomName();
+    console.log("DEBUG: roomname: " + rname );
+    if ( typeof rname != 'undefined'){
+            var entryevt = {'entry' : rname };
+            ws.send(JSON.stringify(entryevt));
+            member();
+            var reloadmember = {"type":"reloadmember"};
+            ws.send(JSON.stringify(reloadmember));
+    }
+};
 
 </script>
 

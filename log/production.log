@@ -1,1 +1,157 @@
 
+[Mon May  1 20:57:46 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Tue May  2 10:43:30 2017] [info] Starting zero downtime software upgrade
+[Tue May  2 10:43:31 2017] [info] Listening at "http://*:3800"
+[Tue May  2 10:43:31 2017] [info] Manager 20368 started
+[Tue May  2 10:43:31 2017] [info] Upgrade successful, stopping 10569
+[Tue May  2 10:43:31 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Tue May  2 10:43:35 2017] [info] Manager 10569 stopped
+[Tue May  2 18:42:58 2017] [info] Starting zero downtime software upgrade
+[Tue May  2 18:42:58 2017] [info] Listening at "http://*:3800"
+[Tue May  2 18:42:58 2017] [info] Manager 24711 started
+[Tue May  2 18:42:58 2017] [info] Upgrade successful, stopping 20368
+[Tue May  2 18:42:58 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Tue May  2 18:43:02 2017] [info] Manager 20368 stopped
+[Tue May  2 18:43:18 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Tue May  2 18:43:37 2017] [info] DEBUG: sendwebpush hash: {"from":"Test1ユーザー","page":"voicechat","roomname":"rooma","to":"test1@test.com","url":"https:\/\/www.backbone.site\/voicechat2n?rooma"}
+[Tue May  2 18:43:37 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP
+[Tue May  2 18:44:22 2017] [info] DEBUG: sendwebpush hash: {"from":"Test1ユーザー","page":"videochat","roomname":"rooma","to":"test1@test.com","url":"https:\/\/www.backbone.site\/videochat2n?rooma"}
+[Tue May  2 18:44:22 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP
+[Tue May  2 18:45:19 2017] [info] DEBUG: sendwebpush hash: {"from":"Test1ユーザー","page":"videochat","roomname":"rooma","to":"52through@gmail.com","url":"https:\/\/www.backbone.site\/videochat2n?rooma"}
+[Tue May  2 18:45:52 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/feCIYah2wAY:APA91bErSBeuGnLXasaP_Gkqwm4xYbJw9ZZ-Vmn6lVGY-zvxNbkKnt_JEeNgmlDxwKTycqTjgkcX-kHa8Rw7LlkC88rCyK3E3NAB5lFhLS21eCuKS-3_n8ACr5dFw6HL0CYEkajvFmaO","keys":{"auth":"UEPgoTXZUK__Sk1YMyWXTQ==","p256dh":"BA5LO4WjUFc-E6zi3BubphEYOGSMiovxCeHGmFvQuv2coKbWnRuKuzdWxk9P8qUGW1tQzFbuboHTZEFK_TxGNIU="}}
+[Tue May  2 18:46:03 2017] [info] DEBUG: sendwebpush hash: {"from":"Test1ユーザー","page":"videochat","roomname":"rooma","to":"52through@gmail.com","url":"https:\/\/www.backbone.site\/videochat2n?rooma"}
+[Tue May  2 18:46:04 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/feCIYah2wAY:APA91bErSBeuGnLXasaP_Gkqwm4xYbJw9ZZ-Vmn6lVGY-zvxNbkKnt_JEeNgmlDxwKTycqTjgkcX-kHa8Rw7LlkC88rCyK3E3NAB5lFhLS21eCuKS-3_n8ACr5dFw6HL0CYEkajvFmaO
+[Tue May  2 18:47:20 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/eJkippT8OZs:APA91bGCtcsmywuGwNgA0yp3EQ04XIxpLURMh4wg_owerqY_pereDB2dspzkpDG58s8O8Cl4XlFpNIyiw5aAiXE7sclRycvgQ1aGKLLDSj5Utbip6rWJaMX7Z2zTx04vTk8sscv0XeXC","keys":{"auth":"mwCI-mPTOi1nM5x35ISiVA==","p256dh":"BClWrkI3tPtf-3CZndO2xBbehe-HQSOLjhb0q81q1LC59aXaot0o37_EmCdlLYqhIESFtV6Vr4RrvhiX8SSl_0o="}}
+[Tue May  2 18:47:46 2017] [info] DEBUG: sendwebpush hash: {"from":"Test1ユーザー","page":"videochat","roomname":"rooma","to":"kimihito.sakurai@gmail.com","url":"https:\/\/www.backbone.site\/videochat2n?rooma"}
+[Tue May  2 18:47:46 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/eJkippT8OZs:APA91bGCtcsmywuGwNgA0yp3EQ04XIxpLURMh4wg_owerqY_pereDB2dspzkpDG58s8O8Cl4XlFpNIyiw5aAiXE7sclRycvgQ1aGKLLDSj5Utbip6rWJaMX7Z2zTx04vTk8sscv0XeXC
+[Tue May  2 18:52:38 2017] [info] Starting zero downtime software upgrade
+[Tue May  2 18:52:39 2017] [info] Listening at "http://*:3800"
+[Tue May  2 18:52:39 2017] [info] Manager 24824 started
+[Tue May  2 18:52:39 2017] [info] Upgrade successful, stopping 24711
+[Tue May  2 18:52:39 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Tue May  2 18:52:44 2017] [info] Manager 24711 stopped
+[Tue May  2 18:52:53 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Tue May  2 18:53:57 2017] [info] DEBUG: sendwebpush hash: {"from":"Test1ユーザー","page":"voicechat","roomname":"rooma","to":"kimihito.sakurai@gmail.com","url":"https:\/\/westwind.iobb.net\/voicechat2n?rooma"}
+[Tue May  2 18:53:58 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/eJkippT8OZs:APA91bGCtcsmywuGwNgA0yp3EQ04XIxpLURMh4wg_owerqY_pereDB2dspzkpDG58s8O8Cl4XlFpNIyiw5aAiXE7sclRycvgQ1aGKLLDSj5Utbip6rWJaMX7Z2zTx04vTk8sscv0XeXC
+[Tue May  2 18:54:40 2017] [info] DEBUG: sendwebpush hash: {"from":"Test1ユーザー","page":"videochat","roomname":"rooma","to":"kimihito.sakurai@gmail.com","url":"https:\/\/westwind.iobb.net\/videochat2n?rooma"}
+[Tue May  2 18:54:42 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/eJkippT8OZs:APA91bGCtcsmywuGwNgA0yp3EQ04XIxpLURMh4wg_owerqY_pereDB2dspzkpDG58s8O8Cl4XlFpNIyiw5aAiXE7sclRycvgQ1aGKLLDSj5Utbip6rWJaMX7Z2zTx04vTk8sscv0XeXC
+[Wed May  3 08:54:08 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Fri May  5 09:35:15 2017] [info] Starting zero downtime software upgrade
+[Fri May  5 09:35:15 2017] [info] Listening at "http://*:3800"
+[Fri May  5 09:35:15 2017] [info] Manager 26682 started
+[Fri May  5 09:35:16 2017] [info] Upgrade successful, stopping 24824
+[Fri May  5 09:35:16 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Fri May  5 09:35:19 2017] [info] Manager 24824 stopped
+[Fri May  5 09:35:29 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Fri May  5 09:38:38 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/d2j3IDJdqiQ:APA91bGyIMaL2lD5oxNeJI_TpP8h286k6A6D0zdbYoHmFFJUO1Eeodv-55_xadywtn-L_qDUldp4M0QwIO0G05OqfnzPrWDaS4qVWOd-J2UF2KnN3VerIa61QWgVFk7Lnb-lhDukr2lg","keys":{"auth":"2bYBIp7BYdiDnoe-VK2sMQ==","p256dh":"BGuZZPukHN_xu1hot0OpEZLQkKFHPwMtDfNkIIoR4GOmnsagp2-rKb8bKYCxQ92uWsF72mBT1MZNKHcLt3asjoI="}}
+[Fri May  5 09:39:28 2017] [info] DEBUG: sendwebpush hash: {"from":"Test1ユーザー","page":"voicechat","roomname":"rooma","to":"is50863067@gmail.com","url":"https:\/\/westwind.iobb.net\/voicechat2n?rooma"}
+[Fri May  5 09:39:28 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/d2j3IDJdqiQ:APA91bGyIMaL2lD5oxNeJI_TpP8h286k6A6D0zdbYoHmFFJUO1Eeodv-55_xadywtn-L_qDUldp4M0QwIO0G05OqfnzPrWDaS4qVWOd-J2UF2KnN3VerIa61QWgVFk7Lnb-lhDukr2lg
+[Fri May  5 09:56:20 2017] [info] Starting zero downtime software upgrade
+[Fri May  5 09:56:21 2017] [info] Listening at "http://*:3800"
+[Fri May  5 09:56:21 2017] [info] Manager 26871 started
+[Fri May  5 09:56:21 2017] [info] Upgrade successful, stopping 26682
+[Fri May  5 09:56:21 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Fri May  5 09:56:26 2017] [info] Manager 26682 stopped
+[Fri May  5 09:56:40 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Fri May  5 09:57:08 2017] [info] DEBUG: sendwebpush hash: {"from":"Test1ユーザー","page":"voicechat","roomname":"rounge","to":"52through@gmail.com","url":"https:\/\/westwind.iobb.net\/voicechat2n?rounge"}
+[Fri May  5 09:57:09 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/feCIYah2wAY:APA91bErSBeuGnLXasaP_Gkqwm4xYbJw9ZZ-Vmn6lVGY-zvxNbkKnt_JEeNgmlDxwKTycqTjgkcX-kHa8Rw7LlkC88rCyK3E3NAB5lFhLS21eCuKS-3_n8ACr5dFw6HL0CYEkajvFmaO
+[Fri May  5 10:02:06 2017] [info] Starting zero downtime software upgrade
+[Fri May  5 10:02:07 2017] [info] Listening at "http://*:3800"
+[Fri May  5 10:02:07 2017] [info] Manager 26974 started
+[Fri May  5 10:02:07 2017] [info] Upgrade successful, stopping 26871
+[Fri May  5 10:02:07 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Fri May  5 10:02:27 2017] [info] Manager 26871 stopped
+[Fri May  5 10:03:40 2017] [info] Starting zero downtime software upgrade
+[Fri May  5 10:03:41 2017] [info] Listening at "http://*:3800"
+[Fri May  5 10:03:41 2017] [info] Manager 27070 started
+[Fri May  5 10:03:41 2017] [info] Upgrade successful, stopping 26974
+[Fri May  5 10:03:41 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Fri May  5 10:04:02 2017] [info] Manager 26974 stopped
+[Fri May  5 10:06:00 2017] [info] Starting zero downtime software upgrade
+[Fri May  5 10:06:01 2017] [info] Listening at "http://*:3800"
+[Fri May  5 10:06:01 2017] [info] Manager 27134 started
+[Fri May  5 10:06:01 2017] [info] Upgrade successful, stopping 27070
+[Fri May  5 10:06:01 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Fri May  5 10:06:19 2017] [info] Manager 27070 stopped
+[Sat May  6 09:39:43 2017] [info] Starting zero downtime software upgrade
+[Sat May  6 09:39:43 2017] [info] Listening at "http://*:3800"
+[Sat May  6 09:39:43 2017] [info] Manager 3034 started
+[Sat May  6 09:39:43 2017] [info] Upgrade successful, stopping 27134
+[Sat May  6 09:39:43 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Sat May  6 09:39:47 2017] [info] Manager 27134 stopped
+[Sat May  6 09:39:57 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Sat May  6 09:40:22 2017] [info] DEBUG: sendwebpush hash: {"body":"usernameさんから,pageの申請です。roomはroomnameです。","from":"Test1ユーザー","page":"voicechat","roomname":"lounge","to":"52through@gmail.com","url":"https:\/\/westwind.iobb.net\/voicechat2n?lounge"}
+[Sat May  6 09:40:25 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/feCIYah2wAY:APA91bErSBeuGnLXasaP_Gkqwm4xYbJw9ZZ-Vmn6lVGY-zvxNbkKnt_JEeNgmlDxwKTycqTjgkcX-kHa8Rw7LlkC88rCyK3E3NAB5lFhLS21eCuKS-3_n8ACr5dFw6HL0CYEkajvFmaO
+[Sat May  6 09:43:06 2017] [info] Starting zero downtime software upgrade
+[Sat May  6 09:43:06 2017] [info] Listening at "http://*:3800"
+[Sat May  6 09:43:06 2017] [info] Manager 3098 started
+[Sat May  6 09:43:06 2017] [info] Upgrade successful, stopping 3034
+[Sat May  6 09:43:06 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Sat May  6 09:43:09 2017] [info] Manager 3034 stopped
+[Sat May  6 09:43:19 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Sat May  6 09:46:29 2017] [info] Starting zero downtime software upgrade
+[Sat May  6 09:46:30 2017] [info] Listening at "http://*:3800"
+[Sat May  6 09:46:30 2017] [info] Manager 3197 started
+[Sat May  6 09:46:30 2017] [info] Upgrade successful, stopping 3098
+[Sat May  6 09:46:30 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Sat May  6 09:46:32 2017] [info] Manager 3098 stopped
+[Sat May  6 09:47:32 2017] [info] Starting zero downtime software upgrade
+[Sat May  6 09:47:33 2017] [info] Listening at "http://*:3800"
+[Sat May  6 09:47:33 2017] [info] Manager 3263 started
+[Sat May  6 09:47:33 2017] [info] Upgrade successful, stopping 3197
+[Sat May  6 09:47:33 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Sat May  6 09:47:35 2017] [info] Manager 3197 stopped
+[Sat May  6 09:48:00 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Sat May  6 09:50:47 2017] [info] Starting zero downtime software upgrade
+[Sat May  6 09:50:47 2017] [info] Listening at "http://*:3800"
+[Sat May  6 09:50:47 2017] [info] Manager 3328 started
+[Sat May  6 09:50:47 2017] [info] Upgrade successful, stopping 3263
+[Sat May  6 09:50:47 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Sat May  6 09:51:08 2017] [info] Manager 3263 stopped
+[Sat May  6 09:51:33 2017] [info] DEBUG: sendwebpush hash: {"body":"Test1ユーザーさんから,voicechatの申請です。roomはroomaです。","from":"Test1ユーザー","page":"voicechat","roomname":"rooma","to":"52though@gmail.com","url":"https:\/\/westwind.iobb.net\/voicechat2n?rooma"}
+[Sat May  6 09:51:55 2017] [info] DEBUG: sendwebpush hash: {"body":"Test1ユーザーさんから,voicechatの申請です。roomはroomaです。","from":"Test1ユーザー","page":"voicechat","roomname":"rooma","to":"52through@gmail.com","url":"https:\/\/westwind.iobb.net\/voicechat2n?rooma"}
+[Sat May  6 09:51:57 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/feCIYah2wAY:APA91bErSBeuGnLXasaP_Gkqwm4xYbJw9ZZ-Vmn6lVGY-zvxNbkKnt_JEeNgmlDxwKTycqTjgkcX-kHa8Rw7LlkC88rCyK3E3NAB5lFhLS21eCuKS-3_n8ACr5dFw6HL0CYEkajvFmaO
+[Sat May  6 09:56:47 2017] [info] Starting zero downtime software upgrade
+[Sat May  6 09:56:47 2017] [info] Listening at "http://*:3800"
+[Sat May  6 09:56:47 2017] [info] Manager 3505 started
+[Sat May  6 09:56:47 2017] [info] Upgrade successful, stopping 3328
+[Sat May  6 09:56:47 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Sat May  6 09:56:53 2017] [info] Manager 3328 stopped
+[Sat May  6 09:56:59 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Sat May  6 09:57:26 2017] [info] DEBUG: sendwebpush hash: {"body":"Test1ユーザーさんから、videochatの申請です。room名はroomaです。","from":"Test1ユーザー","page":"videochat","roomname":"rooma","to":"52through@gmail.com","url":"https:\/\/westwind.iobb.net\/videochat2n?rooma"}
+[Sat May  6 09:57:27 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/feCIYah2wAY:APA91bErSBeuGnLXasaP_Gkqwm4xYbJw9ZZ-Vmn6lVGY-zvxNbkKnt_JEeNgmlDxwKTycqTjgkcX-kHa8Rw7LlkC88rCyK3E3NAB5lFhLS21eCuKS-3_n8ACr5dFw6HL0CYEkajvFmaO
+[Sat May  6 11:46:10 2017] [info] Starting zero downtime software upgrade
+[Sat May  6 11:46:11 2017] [info] Listening at "http://*:3800"
+[Sat May  6 11:46:11 2017] [info] Manager 4580 started
+[Sat May  6 11:46:11 2017] [info] Upgrade successful, stopping 3505
+[Sat May  6 11:46:11 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Sat May  6 11:46:13 2017] [info] Manager 3505 stopped
+[Mon May  8 14:33:07 2017] [info] Manager 4580 stopped
+[Tue May  9 08:40:11 2017] [info] Listening at "http://*:3800"
+[Tue May  9 08:40:11 2017] [info] Manager 4254 started
+[Tue May  9 08:40:11 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Wed May 10 15:46:32 2017] [info] Manager 4254 stopped
+[Fri May 12 15:25:50 2017] [info] Listening at "http://*:3800"
+[Fri May 12 15:25:50 2017] [info] Manager 3256 started
+[Fri May 12 15:25:50 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Fri May 12 16:07:38 2017] [error] DBI connect('dbname=sitedata;host=sitedata;port=3306','sitedata',...) failed: Unknown MySQL server host 'sitedata' (0) at /home/debian/perl5/lib/perl5/DBIx/Connector.pm line 32.
+
+[Fri May 12 16:15:37 2017] [info] Starting zero downtime software upgrade
+[Fri May 12 16:15:38 2017] [info] Listening at "http://*:3800"
+[Fri May 12 16:15:38 2017] [info] Manager 9826 started
+[Fri May 12 16:15:38 2017] [info] Upgrade successful, stopping 3256
+[Fri May 12 16:15:38 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Fri May 12 16:15:39 2017] [info] Manager 3256 stopped
+[Fri May 12 16:15:57 2017] [error] DBI connect('dbname=sitedata;host=sitedata;port=3306','sitedata',...) failed: Unknown MySQL server host 'sitedata' (0) at /home/debian/perl5/lib/perl5/DBIx/Connector.pm line 32.
+
+[Fri May 12 16:18:04 2017] [info] Starting zero downtime software upgrade
+[Fri May 12 16:18:05 2017] [info] Listening at "http://*:3800"
+[Fri May 12 16:18:05 2017] [info] Manager 9906 started
+[Fri May 12 16:18:05 2017] [info] Upgrade successful, stopping 9826
+[Fri May 12 16:18:05 2017] [info] Creating process id file "/media/storage/debian/perlwork/mojowork/server/site1/script/hypnotoad.pid"
+[Fri May 12 16:18:06 2017] [info] Manager 9826 stopped
+[Fri May 12 16:19:27 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/dr64-2OszKI:APA91bH04s56dDXg0z6b2N0teqPXt_iZNtAFUgyCf-Sp2YUXxqbZYgE3DOc-zYUGIkqveq93Brx86fqzvnPj6c6_C3O-GPgqltc7ozhBOn8PadSidhSjdyQYxtbuqVGTPJqI89vILlHP","keys":{"auth":"R33BjlGif6lMLCcsYbvIfg==","p256dh":"BJ1X0NrRqRJTHOmWC67ZAcvqXYX1z5S5s0FPGPI2gDvkKfIJR9ecm2jh04KpvBge8pm495SDBo15171SCfigGd8="}}
+[Fri May 12 16:19:47 2017] [info] DEBUG: on channel:(WALKCHAT) Test1ユーザー : {"chat":"おーい！","geometry":{"coordinates":[139.9053481,35.6766137],"type":"Point"},"hms":"16:19:47","icon_url":"\/imgcomm?oid=RGRpb2hUd25vWXNpd2llbzV2WlVTUQ","loc":{"lat":35.6766137,"lng":139.9053481},"ttl":"2017-05-12T07:19:47","username":"Test1ユーザー"}
+[Fri May 12 16:21:54 2017] [info] DEBUG: rec hash: {"endpoint":"https:\/\/android.googleapis.com\/gcm\/send\/fWNQkA5PhJQ:APA91bFO1JL4hU7iM9YpHWLWWCIoAJ1dBpDhhfj-izq9eWD4S_kVNfBWXPBmlj91SdxvEuYUMj6ollN1zp_zg-iWbwtc7KCiifxdZgMyz225dUoXN0nNWy8mn7THHKeL2MkJhin5gy4v","keys":{"auth":"iQrYzxJQezZgimytslaH8g==","p256dh":"BPV5xBkdZEPfdsh0B2yafQxVRODSH8CCk4XmjrRZVLnV17H1GC5_meCKbkdz431CQ_yeh1RmnoObjZw56rjNWBM="}}
+[Fri May 12 16:22:11 2017] [info] DEBUG: sendwebpush hash: {"body":"Test1ユーザーさんから,voicechatの申請です。roomはroomaです。","from":"Test1ユーザー","page":"voicechat","roomname":"rooma","to":"test2@test.com","url":"https:\/\/westwind.iobb.net\/voicechat2n?rooma"}
+[Fri May 12 16:22:12 2017] [info] DEBUG: noti endpoint: https://android.googleapis.com/gcm/send/fWNQkA5PhJQ:APA91bFO1JL4hU7iM9YpHWLWWCIoAJ1dBpDhhfj-izq9eWD4S_kVNfBWXPBmlj91SdxvEuYUMj6ollN1zp_zg-iWbwtc7KCiifxdZgMyz225dUoXN0nNWy8mn7THHKeL2MkJhin5gy4v

@@ -27,6 +27,9 @@
        ws.send(JSON.stringify(dummsg)); 
        console.log("socket wait sending!");
         }, 50000);
+
+    autoentry();
+
     };
 
     ws.onclose = function(){
@@ -230,7 +233,8 @@
 function startvoice() {
     console.log('Start local Media');
 
-    navigator.webkitGetUserMedia({video: true, audio: true},
+ %#   navigator.webkitGetUserMedia({video: true, audio: true},
+    navigator.webkitGetUserMedia({video: true, audio: {mandatory: {echoCancellation : false, googEchoCancellation: false}}  },
 %#    navigator.webkitGetUserMedia({video: {optional: [{sourceId: cameraData[camnum].id }]}, audio: true},
 
     function (stream) { // success
@@ -591,9 +595,23 @@ function member(){
 
 function hangUp(){
 
-    window.location.reload();
+  %#  window.location.reload();
+    window.location.replace('https://westwind.iobb.net/videochat2n');
 
 }
+
+function getRoomName() { // たとえば、 URLに  ?XXXXXX  とする
+    var url = document.location.href;
+    var args = url.split('?');
+    if (args.length > 1) {
+      var room = args[1];
+      if (room != "") {
+        var encroom = decodeURI(room);
+        return encroom;
+      }
+    }
+    return ;
+  }
 
 function pushcall(){
 // site1にemailとroomanameを送って、webpushを行う mode
@@ -608,11 +626,18 @@ function pushcall(){
        return;
      }
 
+  var pushurl = "https://westwind.iobb.net/videochat2n?" + roomname;
+  var encurl = encodeURI(pushurl);
+
+  var bodymess = username + "さんから、videochatの申請です。room名は" + roomname + "です。";
+
  var params = {
                 "to" : pushemail,
                 "from" : username,
                 "roomname" : roomname,
                 "page" : "videochat",
+                "body" : bodymess,
+                "url" : encurl,
               };
 
  var data = JSON.stringify(params);
@@ -634,6 +659,19 @@ function pushcall(){
        $('#errormess').text(data.mess);
     }
 }
+
+function autoentry(){
+    //通知の場合の自動エントリー
+    var rname = getRoomName();
+    console.log("DEBUG: roomname: " + rname );
+    if ( typeof rname != 'undefined'){
+            var entryevt = {'entry' : rname };
+            ws.send(JSON.stringify(entryevt));
+            member();
+            var reloadmember = {"type":"reloadmember"};
+            ws.send(JSON.stringify(reloadmember));
+    }
+};
 
 </script>
 
