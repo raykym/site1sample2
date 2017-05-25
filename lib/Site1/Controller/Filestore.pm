@@ -274,7 +274,7 @@ sub fileview {
         return $self->render(template => 'filestore/imgview',msg => '');
         }
     # 動画、音楽
-    if ($mime =~ /mpeg|3gp|mp4|mpg|realtext|mp3/ ){
+    if ($mime =~ /mpeg|3gp|mp4|m4a|mpg|realtext|mp3/ ){
         return $self->render(template => 'filestore/videview',msg => '');
         }
     

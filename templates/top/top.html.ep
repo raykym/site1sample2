@@ -8,7 +8,7 @@
                 <a href="/signup" data-rel="dialog" data-transition="flip" class="ui-btn ui-corner-all ">SignUp</a>
                 <a href="/signin" data-rel="dialog" data-transition="flip" class="ui-btn ui-corner-all ">SignIn</a>
          %# url shortener use.
-                <a href="https://goo.gl/zDCRrG" data-rel="dialog" data-transition="flip" class="ui-btn ui-corner-all">Google+</a>
+                <a href="https://westwind.iobb.net/googleauth" data-rel="dialog" data-transition="flip" class="ui-btn ui-corner-all" rel="external">Google+</a>
             </div>
             <div>
 %#            <h4 style="color: #005500;">登録済みの場合、直接メニューから入れます</h4>

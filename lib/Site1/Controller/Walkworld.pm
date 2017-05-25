@@ -680,6 +680,14 @@ sub pointget {
 sub supervise {
    my $self = shift;
 
+   my $uid = $self->stash('uid');
+
+   if ( $uid ne 'YlnGejjoHus7vXWPgwUHMw' ) {
+     # test1@test.com以外はリダイレクトする
+     $self->redirect_to('/menu');
+     return;
+   }
+
    $self->render(msg_w => '');
 }
 

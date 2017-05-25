@@ -166,4 +166,11 @@ sub sendwebpush {
     $self->render( json => $messobj);
 }
 
+sub googleauth {
+    my $self = shift;
+
+   $self->redirect_to('https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=861600582037-j2gm11pu28gapapmdkjacjfi5jknngho.apps.googleusercontent.com&redirect_uri=https://westwind.iobb.net/oauth2callback&scope=https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/userinfo.email&access_type=offline');
+
+}
+
 1;

@@ -112,6 +112,8 @@ sub startup {
 
   $r->get('/valhara')->to('top#valhara');
 
+  $r->get('/googleauth')->to('top#googleauth');
+
   $r->any('/oauth2callback')->to(controller => 'Login', action => 'oauth2callback');
 
    # 以下はログイン認証済でないとページに入れない
