@@ -6,6 +6,7 @@ use DateTime;
 use Data::Dumper;
 use Encode;
 use MIME::Base64::URLSafe; # uid,oidをページで受け渡すにはエンコードが必要
+use Mojo::Asset::File;
 
 use lib '/home/debian/perlwork/mojowork/server/site1/lib/Site1';
 use Sessionid; #oidをuidと同じ仕組みで提供するため
@@ -363,8 +364,127 @@ sub seticonact {
        $sth_setdellock->execute($icon_new);
        $self->app->log->debug("DEBUG: iconset $icon_new : $email and dellock");
 
+    #redis clear
+    my $sid = $self->cookie('site1');
+       $self->redis->del("SID$sid");
+
    $self->redirect_to('/menu/settings');
    # $self->render( template => 'login/menusettings', msg => '' );
+}
+
+# img chat用
+sub putfileimg {
+   my $self = shift;
+
+   my $roomname = $self->param('room');
+   if (! defined $roomname) {
+       return $self->render( template => 'top/unknown');
+      }
+
+   my $imgDB = $self->app->mongoclient->get_database($roomname);
+   my $bucket = $imgDB->gfs;
+      
+      # filenameはformの指定name 
+   my $fileobj = $self->req->upload('filename');
+   my $filename = $fileobj->filename;
+   my $data = $fileobj->asset->slurp;
+   my $mimetype = $fileobj->headers->content_type;
+
+   my $metadata = { "metadata" => { 
+                                    'content-type' => $mimetype,
+                                    'roomname' => $roomname,
+                                  }
+                  };
+
+  # tmpに展開してから読み込むスタイル  上記の$dataもコメントアウト
+  #    $fileobj->move_to("/tmp/$filename");
+  #    open my $fh, "< /tmp/$filename";
+  #    $bucket->upload_from_stream($filename, $fh, $metadata);
+  #    close($fh);
+  #    system( "rm -rf /tmp/\$filename");
+
+   my $assetfile = Mojo::Asset::File->new;
+      binmode($assetfile->handle);
+      open $assetfile->handle, '<', \$data;
+      $bucket->upload_from_stream($filename, $assetfile->handle, $metadata);
+
+   my $res = $bucket->find();
+   if (! defined $res) {
+      $self->render( text => "Error upload" );
+      return;
+      }
+
+   my @res_all = $res->all;
+   my $oid = $res_all[$#res_all]->{_id};
+
+   my $roomname_enc = encode_utf8($roomname);
+   my $roomname_b64 = urlsafe_b64encode($roomname_enc);
+      $oid = urlsafe_b64encode($oid);
+ 
+# Ajaxのつもりで考えていたが、そのまま表示するように変えてみる 
+#   my $ft = { "filename" => $filename, "contenttype" => $mimetype , "oid" => $oid, "size" => $fileobj->size, "roomname" => $roomname };
+#   # resuponseにcontent-typeを付けて戻す
+#   $self->res->headers->header("Access-Control-Allow-Origin" => 'https://westwind.iobb.net' );
+#   $self->render( json => $ft );
+
+# 呼び出し用画面を表示する。
+   $self->stash('room' => $roomname_b64); 
+   $self->stash('mimetype' => $mimetype);
+   $self->render( template => 'filestore/putfileimg' );
+
+   undef $fileobj;
+   undef $filename;
+   undef $mimetype;
+   undef @res_all;
+   undef $oid;
+   undef $roomname;
+   undef $roomname_enc;
+   undef $roomname_b64;
+}
+
+sub getfileimg {
+   my $self = shift;
+
+   my $room = $self->param('room');
+      $room = urlsafe_b64decode($room);
+      $room = decode_utf8($room);
+   if (! defined $room) {
+       return $self->render( template => 'top/unknown');
+      }
+#   my $oid = $self->param('oid');
+#      $oid = urlsafe_b64decode($oid);
+
+      $self->app->log->info("DEBUG:  roomname: $room");
+
+   my $imgDB = $self->app->mongoclient->get_database($room);
+   my $bucket = $imgDB->gfs;
+
+   my $resobj = $bucket->find();
+   my @res_all = $resobj->all;
+   my $oid = $res_all[$#res_all]->{_id};
+   my $mimetype = $res_all[$#res_all]->{metadata}->{'content-type'};
+
+      $self->app->log->info("DEBUG: oid: $oid content-type: $mimetype");
+
+   my $assetfile = Mojo::Asset::File->new;
+      binmode($assetfile->handle);
+
+      $bucket->download_to_stream($oid,$assetfile->handle);
+
+   #   $self->app->log->info("DEBUG: assetsize: $assetfile->size");
+      $self->res->headers->header("Access-Control-Allow-Origin" => 'https://westwind.iobb.net' );
+
+use Mojolicious::Types;
+   my $types = Mojolicious::Types->new;
+   my $extention = $types->detect($mimetype);
+      $self->render(data => $assetfile->slurp, format => $extention);
+
+   undef $resobj;
+   undef $oid;
+   undef $mimetype;
+   undef $assetfile;
+   undef $extention;
+   undef $types;
 }
 
 1;

@@ -634,21 +634,60 @@ function autoentry(){
     }
 };
 
+function imgupload(){
+    //イメージチャットのupload 
+  var roomname = $('#roomname').val();
+
+  var $form   = $('#uploadform');
+  var $iframe = $('iframe[name="ajaxPostImage"]');
+      $('#roomsend').val(roomname);
+
+  if ( roomname == ''){
+       $('#errormess_r').text("ERROR");
+       return;
+     }
+
+    $form.submit(function()
+    {
+        // submitされた時点で、loadイベントをbind
+        $iframe.unbind().bind('load', function() {
+            var response = $iframe.contents();
+
+            // responseを調べて、送信後の処理を完結させる
+            console.log(response);
+        });
+    });
+
+}
+
 </script>
 
 <div data-role="page" style="background: #80aa55">
     <div data-role="header">
-        <a href="#panel" data-icon="bars" data-iconpos="notext">panel</a>
+        <a href="#panel" data-icon="bars" data-iconpos="notext" class="ui-btn-left">panel</a>
         <h3>Voice Chat </h3>
+        <a href="#panel_r" data-icon="bars" data-iconpos="notext" class="ui-btn-right">panel_r</a>
     </div>
-         <div data-role="panel" id="panel" data-display="overlay">
+         <!--  left panel -->
+         <div data-role="panel" id="panel" data-display="overlay" style="background-color: #aac78d;">
             <div id="errormess"></div>
             <p><input type="text" id="pushemail" placeholder="email"></p>
             <button type="button" onclick="pushcall();">呼び出しpush通知</button>
          </div>
+         <!-- right panel -->
+         <div data-role="panel" id="panel_r" data-display="overlay" data-position="right" style="background-color: #aac78d;">
+            <div id="errormess_r"></div>
+            <form id="uploadform" method="post" action="/putfileimg" enctype="multipart/form-data" target="ajaxPostImage" data-ajax="false">
+                <div>ファイルサイズは100MBが上限です！！</div>
+                <input type="file" accept="image/*;capture=camera" name="filename" id="upfile">
+                <input type="hidden" name="room" value="" id="roomsend">
+                <button type="botton" onclick="imgupload();">upload</button>
+            </form>
+         </div>
     <div style="color: #ff0000"><%= $msg_w %></div>
         <div style="border: 1px solid">
             <p>
+            <iframe name="ajaxPostImage" width="100%"></iframe>
                <div data-role="collapsibleset">
                 <div data-role="collapsible">
                   <h4>使い方</h4>

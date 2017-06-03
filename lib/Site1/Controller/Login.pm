@@ -407,6 +407,9 @@ sub emailsetact {
   #$self->stashはusercheck()で上書きされるはずだが、
      $self->stash( email => $new_email );
 
+  #redis clear
+     $self->redis->del("SID$sid");
+
   $self->redirect_to('/menu/settings'); #元のページヘ戻る
 }
 
@@ -446,6 +449,10 @@ sub unamesetact {
       #$self->stashはusercheck()で上書きされるはずだが、
       $self->stash( username => $uname );
 
+  #redis clear
+  my $sid = $self->cookie('site1');
+     $self->redis->del("SID$sid");
+
   $self->redirect_to('/menu/settings'); #元のページヘ戻る
 }
 
@@ -469,6 +476,10 @@ sub passwdsetact {
       $passwd = decode_utf8($passwd);
 
      $sth_passwd_update->execute($passwd,$email);
+
+  #redis clear
+  my $sid = $self->cookie('site1');
+     $self->redis->del("SID$sid");
 
   $self->redirect_to('/menu/settings'); #元のページヘ戻る
 }

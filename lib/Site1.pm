@@ -14,7 +14,7 @@ sub startup {
                        listen => ['http://*:3800'],
                        accepts => 100,
                        clients => 2,
-                       workers => 55,
+                       workers => 10,
                        proxy => 1,
                        });
 
@@ -112,7 +112,7 @@ sub startup {
 
   $r->get('/valhara')->to('top#valhara');
 
-  $r->get('/googleauth')->to('top#googleauth');
+  $r->get('/googleauth')->to('top#googleauth'); # login short url
 
   $r->any('/oauth2callback')->to(controller => 'Login', action => 'oauth2callback');
 
@@ -143,6 +143,9 @@ sub startup {
 
   $bridge->any('/imgload')->to('filestore#imgload'); # imgload用パス
   $bridge->any('/imgcomm')->to('filestore#imgcomm'); # chatroom用パス
+
+  $bridge->post('/putfileimg')->to('filestore#putfileimg'); 
+  $r->get('/getfileimg')->to('filestore#getfileimg'); 
 
   $listbridge->any('/menu/delfileview')->to('filestore#delfileview');
   $bridge->post('/menu/delfileviewact')->to('filestore#delfileviewact');
