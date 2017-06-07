@@ -687,7 +687,7 @@ function imgupload(){
     <div style="color: #ff0000"><%= $msg_w %></div>
         <div style="border: 1px solid">
             <p>
-            <iframe name="ajaxPostImage" width="100%"></iframe>
+            <iframe src="/img/Now.jpeg" id="imgchat" name="ajaxPostImage" width="100%" hight="80%"></iframe>
                <div data-role="collapsibleset">
                 <div data-role="collapsible">
                   <h4>使い方</h4>

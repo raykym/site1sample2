@@ -189,7 +189,7 @@ sub imgload {
     my $sth_getimag = $self->app->dbconn->dbh->prepare($config->{sql_getimag});
     my $oid_url = $self->param('oid');
     my $oid = urlsafe_b64decode($oid_url);
-       $self->app->log->debug("DEBUG: $oid");
+       $self->app->log->info("DEBUG: OID: $oid :: oid_url: $oid_url");
 
        $sth_getimag->execute($oid,$uid);
     my $res = $sth_getimag->fetchrow_hashref();
@@ -198,6 +198,8 @@ sub imgload {
        return $self->render(text => 'error') if (! defined $res);
 
     my $extention = $types->detect($res->{mime});
+
+    $self->res->headers->content_disposition("attachment; filename=$res->{filename};");
 
     $self->render(data => $res->{data},format => $extention);
 }
@@ -217,9 +219,9 @@ sub imgcomm {
     my $sth_getimagcomm = $self->app->dbconn->dbh->prepare($config->{sql_getimagcomm});
     my $oid_url = $self->param('oid');
     my $oid = urlsafe_b64decode($oid_url);
-       $self->app->log->debug("DEBUG: $oid");
+       $self->app->log->info("DEBUG: $oid");
     my $resize = $self->param('resize');
-   #    $self->app->log->debug("DEBUG: $resize");
+       $self->app->log->info("DEBUG: $resize");
 
        $sth_getimagcomm->execute($oid);
     my $res = $sth_getimagcomm->fetchrow_hashref();
@@ -275,7 +277,7 @@ sub fileview {
         return $self->render(template => 'filestore/imgview',msg => '');
         }
     # 動画、音楽
-    if ($mime =~ /mpeg|3gp|mp4|m4a|mpg|realtext|mp3/ ){
+    if ($mime =~ /mpeg|3gp|mp4|m4a|mpg|realtext|mp3|octet-stream/ ){
         return $self->render(template => 'filestore/videview',msg => '');
         }
     
@@ -463,8 +465,10 @@ sub getfileimg {
    my @res_all = $resobj->all;
    my $oid = $res_all[$#res_all]->{_id};
    my $mimetype = $res_all[$#res_all]->{metadata}->{'content-type'};
+   my $filename = $res_all[$#res_all]->{filename};
 
       $self->app->log->info("DEBUG: oid: $oid content-type: $mimetype");
+      $self->app->log->info("DEBUG: filename: $filename");
 
    my $assetfile = Mojo::Asset::File->new;
       binmode($assetfile->handle);
@@ -473,6 +477,9 @@ sub getfileimg {
 
    #   $self->app->log->info("DEBUG: assetsize: $assetfile->size");
       $self->res->headers->header("Access-Control-Allow-Origin" => 'https://westwind.iobb.net' );
+
+      $filename = encode_utf8($filename);
+      $self->res->headers->content_disposition("attachment; filename=$filename;");
 
 use Mojolicious::Types;
    my $types = Mojolicious::Types->new;
